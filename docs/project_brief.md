@@ -13,6 +13,9 @@ Miniatur tata kota pintar (*Smart City*) ini dirancang untuk mensimulasikan sist
    - **Jalur Bawah (4 Lampu Jalan)**: Beroperasi khusus saat malam hari (dipicu sensor cahaya LDR) dan dikendalikan oleh modul simulator edukasi rangkaian listrik berbasis kabel BNC.
 3. **1 Unit Dummy Turbin Angin (Pojok Kiri Atas)**:
    - Menggunakan motor DC Tamiya (tipe 130) yang ditenagai langsung dari jalur 5V dengan saklar manual on/off fisik.
+4. **1 Unit Lampu Lalu Lintas Tenaga Surya (Traffic Light)**:
+   - Menggunakan modul LED VKS 5V (Merah, Kuning, Hijau) yang dikendalikan oleh ESP32.
+   - Dilengkapi panel surya mini 5V yang terhubung via **Optocoupler PC817** sebagai pendeteksi ketersediaan energi matahari / siklus siang.
 
 ---
 
@@ -29,6 +32,9 @@ Miniatur tata kota pintar (*Smart City*) ini dirancang untuk mensimulasikan sist
 | **Soket Female BNC & Kabel** | 4+ unit | Logika 3.3V (Sensing) | Media interaksi edukasi rangkaian listrik |
 | **Dinamo Tamiya (Motor 130)** | 1 | 5V DC | Dummy turbin angin pojok kiri atas |
 | **Saklar Manual On/Off** | 1 | 5V | Pengendali fisik daya dinamo turbin angin |
+| **Modul Traffic Light VKS** | 1 | 5V (R, Y, G, GND) | Lampu lalu lintas 3 warna dikontrol ESP32 |
+| **Optocoupler PC817** | 1 | 3.3V / 5V | Isolasi pembaca daya panel surya ke GPIO 39 |
+| **Panel Surya Mini 5V** | 1 | 5V | Pemanen energi surya simulasi |
 
 ---
 
@@ -55,6 +61,10 @@ Miniatur tata kota pintar (*Smart City*) ini dirancang untuk mensimulasikan sist
 ### C. Turbin Angin Miniatur
 - Beroperasi mandiri menggunakan saklar fisik mekanik tanpa membebani pin GPIO ESP32.
 
+### D. Lampu Lalu Lintas Cerdas Tenaga Surya
+- **Mode Normal (Siang / Daya Surya Aktif):** ESP32 memutar sekuensial Merah (5 detik) -> Kuning (2 detik) -> Hijau (4 detik) secara terus menerus.
+- **Mode Malam (Daya Surya Padam):** ESP32 beralih ke mode siaga lampu kuning berkedip (*flashing yellow*) seperti kota nyata.
+
 ---
 
 ## 4. Referensi Dokumentasi Modular Terkait
@@ -62,10 +72,12 @@ Miniatur tata kota pintar (*Smart City*) ini dirancang untuk mensimulasikan sist
 Untuk menghemat ruang konteks dan mempermudah referensi teknis spesifik, detail teknis lanjutan telah dipisahkan ke dalam dokumen modular:
 
 1. **[docs/pinout.md](file:///Volumes/Data%20Shared/Project/SmartCity/docs/pinout.md)**:
-   - Tabel pemetaan seluruh pin GPIO ESP32, tipe sinyal, dan mode pin (`INPUT`, `OUTPUT`, `INPUT_PULLUP`, `ANALOG`).
+   - Tabel pemetaan seluruh pin GPIO ESP32, arah sinyal, dan skema wiring Fritzing.
 2. **[docs/power_budget.md](file:///Volumes/Data%20Shared/Project/SmartCity/docs/power_budget.md)**:
-   - Analisis kapasitas regulator 3.3V (AMS1117 / xx5r69).
-   - Kalkulasi nilai resistor LED pembatas arus ($47\ \Omega - 68\ \Omega$) dan total beban arus kumulatif agar mikrokontroler aman dan dingin.
-   - Proteksi induktif motor DC Tamiya (*flyback diode* & *decoupling capacitor*).
-3. **[AGENTS.md](file:///Volumes/Data%20Shared/Project/SmartCity/AGENTS.md)**:
+   - Analisis kapasitas regulator 3.3V (AMS1117 / xx5r69), kalkulasi resistor LED (100 Ohm), proteksi dinamo Tamiya, dan kalkulasi kapasitas baterai 18650 + step-up 5V.
+3. **[docs/traffic_light.md](file:///Volumes/Data%20Shared/Project/SmartCity/docs/traffic_light.md)**:
+   - Spesifikasi teknis Traffic Light Opsi A (ESP32 + Optocoupler PC817) dan Opsi B (Hardware NE555 + CD4017).
+4. **[docs/keperluan_beli.md](file:///Volumes/Data%20Shared/Project/SmartCity/docs/keperluan_beli.md)**:
+   - Rekapitulasi daftar belanja komponen lengkap proyek.
+5. **[AGENTS.md](file:///Volumes/Data%20Shared/Project/SmartCity/AGENTS.md)**:
    - Aturan kerja, alur kompilasi PlatformIO, dan konvensi disiplin proyek.

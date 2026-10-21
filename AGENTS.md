@@ -11,6 +11,7 @@
 - **Pin Definition Konsisten:** Seluruh pemetaan pin harus mengacu pada tabel pinout di `docs/project_brief.md` dan didefinisikan secara eksplisit di `src/main.cpp`.
 - **Pemisahan File Dokumentasi (Modular Markdown):** Jika konten dokumentasi mulai membahas domain/topik spesifik yang berbeda (misalnya alokasi pin, analisis arus/kelistrikan, skenario simulator), pisahkan ke file `.md` baru yang terfokus di folder `docs/` (misal: `docs/pinout.md`, `docs/power_budget.md`). Hal ini bertujuan untuk menghemat token konteks, mencegah file membengkak (*bloated*), dan mempermudah referensi cepat.
 - **Format Respon Chat (Hindari Sintaks LaTeX):** Jangan menggunakan sintaks LaTeX (seperti `$..$`, `\Omega`, `\le`, `\approx`, `\text{..}`) dalam jawaban chat karena tidak ter-render di antarmuka chat. Gunakan teks polos atau simbol Unicode biasa yang mudah dibaca langsung (contoh: "47 Ohm - 68 Ohm", "<= 60 mA", "Ω", "~", "<=").
+- **Jangan Melakukan Git Commit Tanpa Permintaan:** Agent dilarang menjalankan perintah `git commit` secara inisiatif sendiri. Commit hanya dieksekusi jika diminta secara langsung dan eksplisit oleh user.
 - Prioritaskan stabilitas kelistrikan dan proteksi mikrokontroler dari beban berlebih.
 
 ## Commands (Untuk Dijalankan User)
@@ -29,3 +30,4 @@ pio device monitor           # Serial monitor (115200 baud)
    - Seri (2 LED: GPIO 26, 25): Dipicu oleh loop sensing BNC seri pada GPIO 4 (`INPUT_PULLUP`).
    - Paralel (2 LED: GPIO 33, 32): Dipicu oleh sensing BNC cabang 1 pada GPIO 16 dan cabang 2 pada GPIO 17 (`INPUT_PULLUP`).
 4. **Dummy Turbin Angin:** Dinamo Tamiya 5V dengan saklar fisik manual (tanpa GPIO).
+5. **Traffic Light VKS:** GPIO 23 (R), GPIO 5 (Y), GPIO 13 (G) — dipantau sinyal daya solar via Optocoupler PC817 pada GPIO 39 (VN).
