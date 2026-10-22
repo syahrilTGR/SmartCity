@@ -1,0 +1,396 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 1500" width="100%" height="100%" style="background-color: #0b1120; font-family: 'Segoe UI', Arial, sans-serif;">
+  <defs>
+    <!-- Efek Shadow & Glow -->
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="3" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+    <radialGradient id="screw-pad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#475569"/>
+      <stop offset="50%" stop-color="#334155"/>
+      <stop offset="85%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </radialGradient>
+  </defs>
+
+  <!-- HEADER JUDUL -->
+  <text x="590" y="38" font-size="22" font-weight="bold" fill="#38bdf8" text-anchor="middle" letter-spacing="1">MAPPING SOKET JST PADA PCB MATRIX (SPASI 1 PIN + LUBANG BAUT)</text>
+  <text x="590" y="62" font-size="13" fill="#94a3b8" text-anchor="middle">Grid: A–Y (25 Kolom) × 1–29 (29 Baris) | 4 Pojokan: Lubang Baut 2×2 (A1-B2, X1-Y2, A28-B29, X28-Y29)</text>
+
+  <!-- PAPAN PCB MATRIX (Perfboard Hijau Tua) -->
+  <rect x="70" y="80" width="1040" height="1340" rx="16" fill="#13231e" stroke="#10b981" stroke-width="3" filter="url(#shadow)"/>
+
+  <!-- LABEL GRID KOLOM (A - Y) - ATAS & BAWAH -->
+  <!-- Col A=140, B=178, C=216, D=254, E=292, F=330, G=368, H=406, I=444, J=482, K=520, L=558, M=596, N=634, O=672, P=710, Q=748, R=786, S=824, T=862, U=900, V=938, W=976, X=1014, Y=1052 -->
+  <g font-size="11" font-weight="bold" fill="#34d399" text-anchor="middle">
+    <!-- Atas -->
+    <text x="140" y="104">A</text><text x="178" y="104">B</text><text x="216" y="104">C</text><text x="254" y="104">D</text>
+    <text x="292" y="104">E</text><text x="330" y="104">F</text><text x="368" y="104">G</text><text x="406" y="104">H</text>
+    <text x="444" y="104">I</text><text x="482" y="104">J</text><text x="520" y="104">K</text><text x="558" y="104">L</text>
+    <text x="596" y="104">M</text><text x="634" y="104">N</text><text x="672" y="104">O</text><text x="710" y="104">P</text>
+    <text x="748" y="104">Q</text><text x="786" y="104">R</text><text x="824" y="104">S</text><text x="862" y="104">T</text>
+    <text x="900" y="104">U</text><text x="938" y="104">V</text><text x="976" y="104">W</text><text x="1014" y="104">X</text>
+    <text x="1052" y="104">Y</text>
+  </g>
+
+  <!-- LABEL GRID BARIS (1 - 29) - KIRI & KANAN -->
+  <g font-size="10.5" font-weight="bold" fill="#34d399" text-anchor="middle">
+    <text x="100" y="136">1</text><text x="100" y="178">2</text><text x="100" y="220">3</text><text x="100" y="262">4</text>
+    <text x="100" y="304">5</text><text x="100" y="346">6</text><text x="100" y="388">7</text><text x="100" y="430">8</text>
+    <text x="100" y="472">9</text><text x="100" y="514">10</text><text x="100" y="556">11</text><text x="100" y="598">12</text>
+    <text x="100" y="640">13</text><text x="100" y="682">14</text><text x="100" y="724">15</text><text x="100" y="766">16</text>
+    <text x="100" y="808">17</text><text x="100" y="850">18</text><text x="100" y="892">19</text><text x="100" y="934">20</text>
+    <text x="100" y="976">21</text><text x="100" y="1018">22</text><text x="100" y="1060">23</text><text x="100" y="1102">24</text>
+    <text x="100" y="1144">25</text><text x="100" y="1186">26</text><text x="100" y="1228">27</text><text x="100" y="1270">28</text>
+    <text x="100" y="1312">29</text>
+
+    <text x="1080" y="136">1</text><text x="1080" y="178">2</text><text x="1080" y="220">3</text><text x="1080" y="262">4</text>
+    <text x="1080" y="304">5</text><text x="1080" y="346">6</text><text x="1080" y="388">7</text><text x="1080" y="430">8</text>
+    <text x="1080" y="472">9</text><text x="1080" y="514">10</text><text x="1080" y="556">11</text><text x="1080" y="598">12</text>
+    <text x="1080" y="640">13</text><text x="1080" y="682">14</text><text x="1080" y="724">15</text><text x="1080" y="766">16</text>
+    <text x="1080" y="808">17</text><text x="1080" y="850">18</text><text x="1080" y="892">19</text><text x="1080" y="934">20</text>
+    <text x="1080" y="976">21</text><text x="1080" y="1018">22</text><text x="1080" y="1060">23</text><text x="1080" y="1102">24</text>
+    <text x="1080" y="1144">25</text><text x="1080" y="1186">26</text><text x="1080" y="1228">27</text><text x="1080" y="1270">28</text>
+    <text x="1080" y="1312">29</text>
+  </g>
+
+  <!-- ===================================================================== -->
+  <!-- 4 LUBANG BAUT PCB 2x2 LUBANG (POJOK KIRI ATAS, KANAN ATAS, DLL)       -->
+  <!-- ===================================================================== -->
+  
+  <!-- 1. BAUT POJOK KIRI ATAS (Kolom A-B, Baris 1-2) -->
+  <g id="SCREW_TL">
+    <rect x="122" y="116" width="74" height="64" rx="8" fill="#1e293b" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="3,2"/>
+    <circle cx="159" cy="148" r="20" fill="url(#screw-pad)" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="159" cy="148" r="8" fill="#0f172a"/>
+    <text x="159" y="196" font-size="8.5" font-weight="bold" fill="#cbd5e1" text-anchor="middle">BAUT [A-B, 1-2]</text>
+  </g>
+
+  <!-- 2. BAUT POJOK KANAN ATAS (Kolom X-Y, Baris 1-2) -->
+  <g id="SCREW_TR">
+    <rect x="996" y="116" width="74" height="64" rx="8" fill="#1e293b" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="3,2"/>
+    <circle cx="1033" cy="148" r="20" fill="url(#screw-pad)" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="1033" cy="148" r="8" fill="#0f172a"/>
+    <text x="1033" y="196" font-size="8.5" font-weight="bold" fill="#cbd5e1" text-anchor="middle">BAUT [X-Y, 1-2]</text>
+  </g>
+
+  <!-- 3. BAUT POJOK KIRI BAWAH (Kolom A-B, Baris 28-29) -->
+  <g id="SCREW_BL">
+    <rect x="122" y="1252" width="74" height="64" rx="8" fill="#1e293b" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="3,2"/>
+    <circle cx="159" cy="1284" r="20" fill="url(#screw-pad)" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="159" cy="1284" r="8" fill="#0f172a"/>
+    <text x="159" y="1242" font-size="8.5" font-weight="bold" fill="#cbd5e1" text-anchor="middle">BAUT [A-B, 28-29]</text>
+  </g>
+
+  <!-- 4. BAUT POJOK KANAN BAWAH (Kolom X-Y, Baris 28-29) -->
+  <g id="SCREW_BR">
+    <rect x="996" y="1252" width="74" height="64" rx="8" fill="#1e293b" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="3,2"/>
+    <circle cx="1033" cy="1284" r="20" fill="url(#screw-pad)" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="1033" cy="1284" r="8" fill="#0f172a"/>
+    <text x="1033" y="1242" font-size="8.5" font-weight="bold" fill="#cbd5e1" text-anchor="middle">BAUT [X-Y, 28-29]</text>
+  </g>
+
+  <!-- ===================================================================== -->
+  <!-- AREA SISI ATAS: TIER 1 (Baris 1 - 2) & TIER 2 (Baris 5 - 6)            -->
+  <!-- ===================================================================== -->
+
+  <!-- TIER 1 - BARIS 1-2 -->
+
+  <!-- 1. J_IR1 [3-Pin] ★ SUDAH TERPASANG -->
+  <!-- Kolom C - E (216 s/d 292), Baris 1-2 (Tepat di samping lubang baut kiri) -->
+  <g id="J_IR1">
+    <rect x="198" y="118" width="112" height="64" rx="5" fill="#1e293b" stroke="#eab308" stroke-width="2.5" filter="url(#shadow)"/>
+    <rect x="201" y="121" width="28" height="13" fill="#ca8a04" rx="2"/>
+    <text x="215" y="131" font-size="8.5" font-weight="bold" fill="#000" text-anchor="middle">★ FIX</text>
+    <text x="254" y="144" font-size="11" font-weight="bold" fill="#facc15" text-anchor="middle">J_IR1 [3P]</text>
+    <text x="254" y="160" font-size="9" fill="#f8fafc" text-anchor="middle">1:3V3 | 2:GND | 3:D34</text>
+    <text x="254" y="173" font-size="8" fill="#94a3b8" text-anchor="middle">Kolom: C, D, E</text>
+    <circle cx="216" cy="131" r="3.5" fill="#38bdf8"/>
+    <circle cx="254" cy="131" r="3.5" fill="#38bdf8"/>
+    <circle cx="292" cy="131" r="3.5" fill="#38bdf8"/>
+  </g>
+
+  <!-- [SPACE 1 PIN: Kolom F (330) Kosong] -->
+  <rect x="322" y="118" width="16" height="64" rx="3" fill="#0f172a" opacity="0.4" stroke="#475569" stroke-dasharray="2,2"/>
+  <text x="330" y="153" font-size="8" fill="#64748b" text-anchor="middle">SPASI</text>
+
+  <!-- 2. J_IR2 [3-Pin] -->
+  <!-- Kolom G - I (368 s/d 444), Baris 1-2 -->
+  <g id="J_IR2">
+    <rect x="350" y="118" width="112" height="64" rx="5" fill="#1e293b" stroke="#38bdf8" stroke-width="2" filter="url(#shadow)"/>
+    <text x="406" y="144" font-size="11" font-weight="bold" fill="#38bdf8" text-anchor="middle">J_IR2 [3P]</text>
+    <text x="406" y="160" font-size="9" fill="#f8fafc" text-anchor="middle">1:3V3 | 2:GND | 3:D35</text>
+    <text x="406" y="173" font-size="8" fill="#94a3b8" text-anchor="middle">Kolom: G, H, I</text>
+    <circle cx="368" cy="131" r="3.5" fill="#38bdf8"/>
+    <circle cx="406" cy="131" r="3.5" fill="#38bdf8"/>
+    <circle cx="444" cy="131" r="3.5" fill="#38bdf8"/>
+  </g>
+
+  <!-- [SPACE 1 PIN: Kolom J (482) Kosong] -->
+  <rect x="474" y="118" width="16" height="64" rx="3" fill="#0f172a" opacity="0.4" stroke="#475569" stroke-dasharray="2,2"/>
+  <text x="482" y="153" font-size="8" fill="#64748b" text-anchor="middle">SPASI</text>
+
+  <!-- 3. J_LPJ_ATAS [4-Pin] -->
+  <!-- Kolom K - N (520 s/d 634), Baris 1-2 -->
+  <g id="J_LPJ_ATAS">
+    <rect x="502" y="118" width="150" height="64" rx="5" fill="#1e293b" stroke="#4ade80" stroke-width="2" filter="url(#shadow)"/>
+    <text x="577" y="142" font-size="11" font-weight="bold" fill="#4ade80" text-anchor="middle">J_LPJ_ATAS [4P]</text>
+    <text x="577" y="158" font-size="8.5" fill="#f8fafc" text-anchor="middle">1:D14 | 2:GND | 3:D27 | 4:GND</text>
+    <text x="577" y="172" font-size="8" fill="#94a3b8" text-anchor="middle">Kolom: K, L, M, N</text>
+    <circle cx="520" cy="131" r="3.5" fill="#4ade80"/>
+    <circle cx="558" cy="131" r="3.5" fill="#4ade80"/>
+    <circle cx="596" cy="131" r="3.5" fill="#4ade80"/>
+    <circle cx="634" cy="131" r="3.5" fill="#4ade80"/>
+  </g>
+
+  <!-- [SPACE 1 PIN: Kolom O (672) Kosong] -->
+  <rect x="664" y="118" width="16" height="64" rx="3" fill="#0f172a" opacity="0.4" stroke="#475569" stroke-dasharray="2,2"/>
+  <text x="672" y="153" font-size="8" fill="#64748b" text-anchor="middle">SPASI</text>
+
+  <!-- 4. J_LPJ_BAWAH [3-Pin — Common GND] -->
+  <!-- Kolom P - R (710 s/d 786), Baris 1-2 -->
+  <g id="J_LPJ_BAWAH">
+    <rect x="692" y="118" width="112" height="64" rx="5" fill="#1e293b" stroke="#4ade80" stroke-width="2" filter="url(#shadow)"/>
+    <text x="748" y="142" font-size="11" font-weight="bold" fill="#4ade80" text-anchor="middle">LPJ_PAR [3P]</text>
+    <text x="748" y="158" font-size="8.5" fill="#f8fafc" text-anchor="middle">1:D32 | 2:GND | 3:D33</text>
+    <text x="748" y="172" font-size="8" fill="#94a3b8" text-anchor="middle">Kolom: P, Q, R</text>
+    <circle cx="710" cy="131" r="3.5" fill="#4ade80"/>
+    <circle cx="748" cy="131" r="3.5" fill="#4ade80"/>
+    <circle cx="786" cy="131" r="3.5" fill="#4ade80"/>
+  </g>
+
+  <!-- [SPACE: Kolom S, T, U Area Luang] -->
+  <rect x="816" y="118" width="98" height="64" rx="4" fill="#0f172a" opacity="0.25" stroke="#334155" stroke-dasharray="3,2"/>
+  <text x="865" y="153" font-size="9" fill="#64748b" text-anchor="middle">AREA R 10k OPTO</text>
+
+  <!-- 5. J_SOLAR [2-Pin] ★ SUDAH TERPASANG -->
+  <!-- Kolom V - W (938 s/d 976), Baris 1-2 (Tepat di samping lubang baut kanan) -->
+  <g id="J_SOLAR">
+    <rect x="920" y="118" width="74" height="64" rx="5" fill="#1e293b" stroke="#eab308" stroke-width="2.5" filter="url(#shadow)"/>
+    <rect x="923" y="121" width="28" height="13" fill="#ca8a04" rx="2"/>
+    <text x="937" y="131" font-size="8.5" font-weight="bold" fill="#000" text-anchor="middle">★ FIX</text>
+    <text x="957" y="144" font-size="11" font-weight="bold" fill="#facc15" text-anchor="middle">SOLAR [2P]</text>
+    <text x="957" y="160" font-size="9" fill="#f8fafc" text-anchor="middle">1:A(+) | 2:C(-)</text>
+    <text x="957" y="173" font-size="8" fill="#94a3b8" text-anchor="middle">Kolom: V, W</text>
+    <circle cx="938" cy="131" r="3.5" fill="#facc15"/>
+    <circle cx="976" cy="131" r="3.5" fill="#facc15"/>
+  </g>
+
+  <!-- TIER 2 - BARIS 5-6 (Tier Dalam Sisi Atas) -->
+
+  <!-- 6. J_PWR_IN [2-Pin] -->
+  <!-- Kolom G - H (368 s/d 406), Baris 5-6 (Y = 304) -->
+  <g id="J_PWR_IN">
+    <rect x="350" y="286" width="74" height="64" rx="5" fill="#1e293b" stroke="#f97316" stroke-width="2" filter="url(#shadow)"/>
+    <text x="387" y="312" font-size="11" font-weight="bold" fill="#fb923c" text-anchor="middle">PWR_IN [2P]</text>
+    <text x="387" y="328" font-size="9" fill="#f8fafc" text-anchor="middle">1:+5V | 2:GND</text>
+    <text x="387" y="341" font-size="8" fill="#94a3b8" text-anchor="middle">B5-6 (G, H) ➔ VIN</text>
+    <circle cx="368" cy="304" r="3.5" fill="#f97316"/>
+    <circle cx="406" cy="304" r="3.5" fill="#f97316"/>
+  </g>
+
+  <!-- [SPACE 1 PIN: Kolom I (444) Kosong] -->
+
+  <!-- 7. J_MOTOR [2-Pin] -->
+  <!-- Kolom J - K (482 s/d 520), Baris 5-6 -->
+  <g id="J_MOTOR">
+    <rect x="464" y="286" width="74" height="64" rx="5" fill="#1e293b" stroke="#f97316" stroke-width="2" filter="url(#shadow)"/>
+    <text x="501" y="312" font-size="11" font-weight="bold" fill="#fb923c" text-anchor="middle">MOTOR [2P]</text>
+    <text x="501" y="328" font-size="8.8" fill="#f8fafc" text-anchor="middle">1:+5VS | 2:GND</text>
+    <text x="501" y="341" font-size="8" fill="#94a3b8" text-anchor="middle">B5-6 (J, K) Kincir</text>
+    <circle cx="482" cy="304" r="3.5" fill="#f97316"/>
+    <circle cx="520" cy="304" r="3.5" fill="#f97316"/>
+  </g>
+
+  <!-- [SPACE 1 PIN: Kolom L (558) Kosong] -->
+
+  <!-- 8. J_LPJ_SERI [2-Pin] -->
+  <!-- Kolom M - N (596 s/d 634), Baris 5-6 -->
+  <g id="J_LPJ_SERI">
+    <rect x="578" y="286" width="74" height="64" rx="5" fill="#1e293b" stroke="#4ade80" stroke-width="2" filter="url(#shadow)"/>
+    <text x="615" y="312" font-size="11" font-weight="bold" fill="#4ade80" text-anchor="middle">SERI [2P]</text>
+    <text x="615" y="328" font-size="9" fill="#f8fafc" text-anchor="middle">1:LED(+) | 2:GND</text>
+    <text x="615" y="341" font-size="8" fill="#94a3b8" text-anchor="middle">B5-6 (M, N) ➔ D26</text>
+    <circle cx="596" cy="304" r="3.5" fill="#4ade80"/>
+    <circle cx="634" cy="304" r="3.5" fill="#4ade80"/>
+  </g>
+
+  <!-- [SPACE: Kolom O, P, Q Kosong] -->
+
+  <!-- 9. J_LDR [2-Pin] -->
+  <!-- Kolom R - S (786 s/d 824), Baris 5-6 (Dekat pin VP / GPIO 36) -->
+  <g id="J_LDR">
+    <rect x="768" y="286" width="74" height="64" rx="5" fill="#1e293b" stroke="#a855f7" stroke-width="2" filter="url(#shadow)"/>
+    <text x="805" y="312" font-size="11" font-weight="bold" fill="#c084fc" text-anchor="middle">LDR [2P]</text>
+    <text x="805" y="328" font-size="9" fill="#f8fafc" text-anchor="middle">1:3V3 | 2:VP</text>
+    <text x="805" y="341" font-size="8" fill="#94a3b8" text-anchor="middle">B5-6 (R, S) ➔ VP</text>
+    <circle cx="786" cy="304" r="3.5" fill="#a855f7"/>
+    <circle cx="824" cy="304" r="3.5" fill="#a855f7"/>
+  </g>
+
+  <!-- ===================================================================== -->
+  <!-- MODUL ESP32 DEVKIT V1 (Baris 10 s/d Baris 20)                         -->
+  <!-- ===================================================================== -->
+  <g id="ESP32_DEVKIT">
+    <rect x="235" y="472" width="620" height="495" rx="10" fill="#0b0f17" stroke="#475569" stroke-width="2.5" filter="url(#shadow)"/>
+
+    <!-- Antena PCB Emas (Sisi KANAN) -->
+    <rect x="785" y="542" width="60" height="355" rx="4" fill="#78350f" stroke="#ca8a04" stroke-width="2"/>
+    <path d="M 795 557 L 835 557 L 835 597 L 795 597 L 795 637 L 835 637 L 835 677 L 795 677 L 795 717 L 835 717 L 835 757 L 795 757 L 795 797 L 835 797 L 835 837 L 795 837" fill="none" stroke="#eab308" stroke-width="2.5"/>
+    <text x="815" y="872" font-size="10" font-weight="bold" fill="#fde047" text-anchor="middle">ANTENNA</text>
+
+    <!-- Metal Shield ESP-WROOM-32 -->
+    <rect x="450" y="542" width="310" height="355" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+    <text x="605" y="712" font-size="18" font-weight="bold" fill="#f8fafc" text-anchor="middle" letter-spacing="2">ESP-WROOM-32</text>
+    <text x="605" y="739" font-size="12" fill="#94a3b8" text-anchor="middle">DOIT DevKit v1 (30-Pin)</text>
+
+    <!-- Port Micro-USB (Sisi KIRI) -->
+    <rect x="210" y="657" width="38" height="120" rx="4" fill="#94a3b8" stroke="#cbd5e1" stroke-width="2"/>
+    <rect x="212" y="677" width="16" height="80" rx="2" fill="#334155"/>
+    <text x="175" y="722" font-size="11" font-weight="bold" fill="#38bdf8" text-anchor="middle">PORT</text>
+    <text x="175" y="739" font-size="11" font-weight="bold" fill="#38bdf8" text-anchor="middle">USB</text>
+
+    <!-- BARIS PIN ATAS (Baris 10: Y = 514) -->
+    <rect x="278" y="494" width="554" height="40" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+    <g font-size="9" font-weight="bold" text-anchor="middle">
+      <circle cx="292" cy="514" r="6" fill="#ef4444"/><text x="292" y="486" fill="#f87171">VIN</text>
+      <circle cx="330" cy="514" r="6" fill="#64748b"/><text x="330" y="486" fill="#94a3b8">GND</text>
+      <circle cx="368" cy="514" r="6" fill="#22c55e"/><text x="368" y="486" fill="#4ade80">D13</text>
+      <circle cx="406" cy="514" r="6" fill="#334155"/><text x="406" y="486" fill="#64748b">D12</text>
+      <circle cx="444" cy="514" r="6" fill="#22c55e"/><text x="444" y="486" fill="#4ade80">D14</text>
+      <circle cx="482" cy="514" r="6" fill="#22c55e"/><text x="482" y="486" fill="#4ade80">D27</text>
+      <circle cx="520" cy="514" r="6" fill="#22c55e"/><text x="520" y="486" fill="#4ade80">D26</text>
+      <circle cx="558" cy="514" r="6" fill="#06b6d4"/><text x="558" y="486" fill="#22d3ee">D25</text>
+      <circle cx="596" cy="514" r="6" fill="#22c55e"/><text x="596" y="486" fill="#4ade80">D33</text>
+      <circle cx="634" cy="514" r="6" fill="#22c55e"/><text x="634" y="486" fill="#4ade80">D32</text>
+      <circle cx="672" cy="514" r="6" fill="#06b6d4"/><text x="672" y="486" fill="#22d3ee">D35</text>
+      <circle cx="710" cy="514" r="6" fill="#06b6d4"/><text x="710" y="486" fill="#22d3ee">D34</text>
+      <circle cx="748" cy="514" r="6" fill="#eab308"/><text x="748" y="486" fill="#facc15">VN</text>
+      <circle cx="786" cy="514" r="6" fill="#a855f7"/><text x="786" y="486" fill="#c084fc">VP</text>
+      <circle cx="824" cy="514" r="6" fill="#334155"/><text x="824" y="486" fill="#64748b">EN</text>
+    </g>
+
+    <!-- BARIS PIN BAWAH (Baris 20: Y = 934) -->
+    <rect x="278" y="914" width="554" height="40" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+    <g font-size="9" font-weight="bold" text-anchor="middle">
+      <circle cx="292" cy="934" r="6" fill="#ef4444"/><text x="292" y="970" fill="#f87171">3V3</text>
+      <circle cx="330" cy="934" r="6" fill="#64748b"/><text x="330" y="970" fill="#94a3b8">GND</text>
+      <circle cx="368" cy="934" r="6" fill="#06b6d4"/><text x="368" y="970" fill="#22d3ee">D15</text>
+      <circle cx="406" cy="934" r="6" fill="#334155"/><text x="406" y="970" fill="#64748b">D2</text>
+      <circle cx="444" cy="934" r="6" fill="#06b6d4"/><text x="444" y="970" fill="#22d3ee">D4</text>
+      <circle cx="482" cy="934" r="6" fill="#06b6d4"/><text x="482" y="970" fill="#22d3ee">RX2</text>
+      <circle cx="520" cy="934" r="6" fill="#06b6d4"/><text x="520" y="970" fill="#22d3ee">TX2</text>
+      <circle cx="558" cy="934" r="6" fill="#22c55e"/><text x="558" y="970" fill="#4ade80">D5</text>
+      <circle cx="596" cy="934" r="6" fill="#22c55e"/><text x="596" y="970" fill="#4ade80">D18</text>
+      <circle cx="634" cy="934" r="6" fill="#22c55e"/><text x="634" y="970" fill="#4ade80">D19</text>
+      <circle cx="672" cy="934" r="6" fill="#334155"/><text x="672" y="970" fill="#64748b">D21</text>
+      <circle cx="710" cy="934" r="6" fill="#334155"/><text x="710" y="970" fill="#64748b">D22</text>
+      <circle cx="748" cy="934" r="6" fill="#334155"/><text x="748" y="970" fill="#64748b">TX0</text>
+      <circle cx="786" cy="934" r="6" fill="#334155"/><text x="786" y="970" fill="#64748b">RX0</text>
+      <circle cx="824" cy="934" r="6" fill="#22c55e"/><text x="824" y="970" fill="#4ade80">D23</text>
+    </g>
+  </g>
+
+  <!-- ===================================================================== -->
+  <!-- AREA SISI BAWAH: TIER 1 (Baris 28 - 29) & TIER 2 (Baris 24 - 25)      -->
+  <!-- ===================================================================== -->
+
+  <!-- TIER 2 BAWAH: Baris 24-25 (Dekat Pin D15) -->
+  <!-- 1. J_SW_SENS [2-Pin] -->
+  <!-- Kolom E - F (292 s/d 330), Baris 24-25 (Y = 1102) -->
+  <g id="J_SW_SENS">
+    <rect x="274" y="1084" width="74" height="64" rx="5" fill="#1e293b" stroke="#06b6d4" stroke-width="2" filter="url(#shadow)"/>
+    <text x="311" y="1110" font-size="10.5" font-weight="bold" fill="#22d3ee" text-anchor="middle">SW_SENS [2P]</text>
+    <text x="311" y="1126" font-size="9" fill="#f8fafc" text-anchor="middle">1:D15 | 2:GND</text>
+    <text x="311" y="1139" font-size="8" fill="#94a3b8" text-anchor="middle">B24-25 (E, F) ➔ D15</text>
+    <circle cx="292" cy="1102" r="3.5" fill="#06b6d4"/>
+    <circle cx="330" cy="1102" r="3.5" fill="#06b6d4"/>
+  </g>
+
+  <!-- TIER 1 BAWAH: Baris 28-29 (Tepi Luar Paling Bawah) -->
+
+  <!-- 2. J_HOUSE_1_2 [2-Pin] -->
+  <!-- Kolom C - D (216 s/d 254), Baris 28-29 (Y = 1270) -->
+  <g id="J_HOUSE_1_2">
+    <rect x="198" y="1252" width="74" height="64" rx="5" fill="#1e293b" stroke="#4ade80" stroke-width="2" filter="url(#shadow)"/>
+    <text x="235" y="1278" font-size="10.5" font-weight="bold" fill="#4ade80" text-anchor="middle">HOUSE1-2 [2P]</text>
+    <text x="235" y="1294" font-size="9" fill="#f8fafc" text-anchor="middle">1:D18 | 2:GND</text>
+    <text x="235" y="1307" font-size="8" fill="#94a3b8" text-anchor="middle">Kolom: C, D</text>
+    <circle cx="216" cy="1270" r="3.5" fill="#4ade80"/>
+    <circle cx="254" cy="1270" r="3.5" fill="#4ade80"/>
+  </g>
+
+  <!-- [SPACE 1 PIN: Kolom E (292) Kosong di Baris 28-29] -->
+  <rect x="284" y="1252" width="16" height="64" rx="3" fill="#0f172a" opacity="0.4" stroke="#475569" stroke-dasharray="2,2"/>
+  <text x="292" y="1287" font-size="8" fill="#64748b" text-anchor="middle">SPASI</text>
+
+  <!-- 3. J_HOUSE_3_4 [2-Pin] -->
+  <!-- Kolom F - G (330 s/d 368), Baris 28-29 -->
+  <g id="J_HOUSE_3_4">
+    <rect x="312" y="1252" width="74" height="64" rx="5" fill="#1e293b" stroke="#4ade80" stroke-width="2" filter="url(#shadow)"/>
+    <text x="349" y="1278" font-size="10.5" font-weight="bold" fill="#4ade80" text-anchor="middle">HOUSE3-4 [2P]</text>
+    <text x="349" y="1294" font-size="9" fill="#f8fafc" text-anchor="middle">1:D19 | 2:GND</text>
+    <text x="349" y="1307" font-size="8" fill="#94a3b8" text-anchor="middle">Kolom: F, G</text>
+    <circle cx="330" cy="1270" r="3.5" fill="#4ade80"/>
+    <circle cx="368" cy="1270" r="3.5" fill="#4ade80"/>
+  </g>
+
+  <!-- [SPACE 1 PIN: Kolom H (406) Kosong] -->
+  <rect x="398" y="1252" width="16" height="64" rx="3" fill="#0f172a" opacity="0.4" stroke="#475569" stroke-dasharray="2,2"/>
+  <text x="406" y="1287" font-size="8" fill="#64748b" text-anchor="middle">SPASI</text>
+
+  <!-- 4. J_BNC_PAR [3-Pin — Common GND] -->
+  <!-- Kolom I - K (444 s/d 520), Baris 28-29 -->
+  <g id="J_BNC_PAR">
+    <rect x="426" y="1252" width="112" height="64" rx="5" fill="#1e293b" stroke="#06b6d4" stroke-width="2" filter="url(#shadow)"/>
+    <text x="482" y="1278" font-size="11" font-weight="bold" fill="#22d3ee" text-anchor="middle">BNC_PAR [3P]</text>
+    <text x="482" y="1294" font-size="8.5" fill="#f8fafc" text-anchor="middle">1:RX2 | 2:GND | 3:TX2</text>
+    <text x="482" y="1307" font-size="8" fill="#94a3b8" text-anchor="middle">Kolom: I, J, K</text>
+    <circle cx="444" cy="1270" r="3.5" fill="#06b6d4"/>
+    <circle cx="482" cy="1270" r="3.5" fill="#06b6d4"/>
+    <circle cx="520" cy="1270" r="3.5" fill="#06b6d4"/>
+  </g>
+
+  <!-- [SPACE 1 PIN: Kolom L (558) Kosong] -->
+  <rect x="550" y="1252" width="16" height="64" rx="3" fill="#0f172a" opacity="0.4" stroke="#475569" stroke-dasharray="2,2"/>
+  <text x="558" y="1287" font-size="8" fill="#64748b" text-anchor="middle">SPASI</text>
+
+  <!-- 5. J_BNC_SERI [4-Pin] -->
+  <!-- Kolom M - P (596 s/d 710), Baris 28-29 -->
+  <g id="J_BNC_SERI">
+    <rect x="578" y="1252" width="150" height="64" rx="5" fill="#1e293b" stroke="#06b6d4" stroke-width="2" filter="url(#shadow)"/>
+    <text x="653" y="1278" font-size="11" font-weight="bold" fill="#22d3ee" text-anchor="middle">BNC_SERI [4P]</text>
+    <text x="653" y="1294" font-size="8.5" fill="#f8fafc" text-anchor="middle">1:D4 | 2:GND | 3:D25 | 4:GND</text>
+    <text x="653" y="1307" font-size="8" fill="#94a3b8" text-anchor="middle">Kolom: M, N, O, P</text>
+    <circle cx="596" cy="1270" r="3.5" fill="#06b6d4"/>
+    <circle cx="634" cy="1270" r="3.5" fill="#06b6d4"/>
+    <circle cx="672" cy="1270" r="3.5" fill="#06b6d4"/>
+    <circle cx="710" cy="1270" r="3.5" fill="#06b6d4"/>
+  </g>
+
+  <!-- [SPACE 1 PIN: Kolom Q (748) Kosong] -->
+  <rect x="740" y="1252" width="16" height="64" rx="3" fill="#0f172a" opacity="0.4" stroke="#475569" stroke-dasharray="2,2"/>
+  <text x="748" y="1287" font-size="8" fill="#64748b" text-anchor="middle">SPASI</text>
+
+  <!-- 6. J_TL [4-Pin] -->
+  <!-- Kolom R - U (786 s/d 900), Baris 28-29 -->
+  <g id="J_TL">
+    <rect x="768" y="1252" width="150" height="64" rx="5" fill="#1e293b" stroke="#4ade80" stroke-width="2" filter="url(#shadow)"/>
+    <text x="843" y="1278" font-size="11" font-weight="bold" fill="#4ade80" text-anchor="middle">J_TL VKS [4P]</text>
+    <text x="843" y="1294" font-size="8.3" fill="#f8fafc" text-anchor="middle">1:D23(R) | 2:D5(Y) | 3:D13(G) | 4:GND</text>
+    <text x="843" y="1307" font-size="8" fill="#94a3b8" text-anchor="middle">Kolom: R, S, T, U</text>
+    <circle cx="786" cy="1270" r="3.5" fill="#ef4444"/>
+    <circle cx="824" cy="1270" r="3.5" fill="#eab308"/>
+    <circle cx="862" cy="1270" r="3.5" fill="#22c55e"/>
+    <circle cx="900" cy="1270" r="3.5" fill="#64748b"/>
+  </g>
+
+  <!-- ===================================================================== -->
+  <!-- LEGENDA & CATATAN PERAKITAN                                           -->
+  <!-- ===================================================================== -->
+  <g transform="translate(70, 1432)" font-size="11" fill="#cbd5e1">
+    <rect x="0" y="0" width="1040" height="52" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <text x="15" y="22" font-weight="bold" fill="#38bdf8">ATURAN FISIK &amp; MEKANIK:</text>
+    <text x="175" y="22">1. <tspan fill="#f87171" font-weight="bold">4 Lubang Baut 2x2</tspan> di tiap sudut (A-B &amp; X-Y) kosong bebas komponen untuk standoff casing.</text>
+    <text x="175" y="38">2. <tspan fill="#facc15" font-weight="bold">Spasi 1 Lubang (2.54mm)</tspan> antar soket JST mencegah tabrakan bodi plastik saat kabel dicabut-pasang.</text>
+  </g>
+</svg>
