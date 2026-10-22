@@ -1,0 +1,480 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Fritzing (http://www.fritzing.org/) -->
+<netlist date="Thu Oct 22 23:45:53 2026" sketch="smartcity.fzz">
+ <net>
+  <connector name="anode" id="connector1">
+   <part title="Yellow (595nm) LED" id="85520" label="LED3"/>
+  </connector>
+  <connector name="anode" id="connector1">
+   <part title="Yellow (595nm) LED" id="85540" label="LED4"/>
+  </connector>
+  <connector name="D19" id="connector9">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="anode" id="connector1">
+   <part title="Yellow (595nm) LED" id="85420" label="LED1"/>
+  </connector>
+  <connector name="anode" id="connector1">
+   <part title="Yellow (595nm) LED" id="85500" label="LED2"/>
+  </connector>
+  <connector name="D18" id="connector8">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 1" id="connector1">
+   <part title="10kΩ Resistor" id="130420" label="R17"/>
+  </connector>
+  <connector name="3V3" id="connector0">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+  <connector name="pin 0" id="connector0">
+   <part title="Photocell (LDR)" id="86000" label="R5"/>
+  </connector>
+  <connector name="pin3" id="connector2">
+   <part title="fc-51" id="102130" label="M5"/>
+  </connector>
+  <connector name="pin3" id="connector2">
+   <part title="fc-51" id="91660" label="M4"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 1" id="connector1">
+   <part title="220Ω Resistor" id="85770" label="R3"/>
+  </connector>
+  <connector name="Pin 1" id="connector1">
+   <part title="220Ω Resistor" id="85870" label="R4"/>
+  </connector>
+  <connector name="Pin 1" id="connector1">
+   <part title="220Ω Resistor" id="85670" label="R2"/>
+  </connector>
+  <connector name="Pin 1" id="connector1">
+   <part title="220Ω Resistor" id="85560" label="R1"/>
+  </connector>
+  <connector name="Pin 2" id="connector1">
+   <part title="Pushbutton" id="93860" label="S2"/>
+  </connector>
+  <connector name="Pin 2" id="connector1">
+   <part title="Pushbutton" id="93900" label="S4"/>
+  </connector>
+  <connector name="Pin 2" id="connector1">
+   <part title="Pushbutton" id="93830" label="S1"/>
+  </connector>
+  <connector name="Pin 2" id="connector1">
+   <part title="Pushbutton" id="93880" label="S3"/>
+  </connector>
+  <connector name="Pin 1" id="connector0">
+   <part title="Pushbutton" id="93860" label="S2"/>
+  </connector>
+  <connector name="Pin 1" id="connector0">
+   <part title="Pushbutton" id="93900" label="S4"/>
+  </connector>
+  <connector name="Pin 1" id="connector0">
+   <part title="Pushbutton" id="93830" label="S1"/>
+  </connector>
+  <connector name="Pin 1" id="connector0">
+   <part title="Pushbutton" id="93880" label="S3"/>
+  </connector>
+  <connector name="GND" id="connector1">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+  <connector name="GND" id="connector28">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+  <connector name="pin 1" id="connector0">
+   <part title="DC Motor" id="85970" label="M2"/>
+  </connector>
+  <connector name="Pin 1" id="connector0">
+   <part title="Pushbutton" id="117720" label="S6"/>
+  </connector>
+  <connector name="Pin 0" id="connector0">
+   <part title="100Ω Resistor" id="102750" label="R6"/>
+  </connector>
+  <connector name="Pin 0" id="connector0">
+   <part title="100Ω Resistor" id="103020" label="R7"/>
+  </connector>
+  <connector name="Pin 2" id="connector1">
+   <part title="Pushbutton" id="117720" label="S6"/>
+  </connector>
+  <connector name="pin2" id="connector1">
+   <part title="fc-51" id="91660" label="M4"/>
+  </connector>
+  <connector name="pin2" id="connector1">
+   <part title="fc-51" id="102130" label="M5"/>
+  </connector>
+  <connector name="Pin 0" id="connector0">
+   <part title="100Ω Resistor" id="111590" label="R10"/>
+  </connector>
+  <connector name="Pin 0" id="connector0">
+   <part title="100Ω Resistor" id="123410" label="R15"/>
+  </connector>
+  <connector name="Pin 0" id="connector0">
+   <part title="100Ω Resistor" id="123390" label="R13"/>
+  </connector>
+  <connector name="Pin 0" id="connector0">
+   <part title="100Ω Resistor" id="111950" label="R11"/>
+  </connector>
+  <connector name="Pin 0" id="connector0">
+   <part title="100Ω Resistor" id="123400" label="R14"/>
+  </connector>
+  <connector name="Pin 0" id="connector0">
+   <part title="10kΩ Resistor" id="120380" label="R12"/>
+  </connector>
+  <connector name="Pin 0" id="connector0">
+   <part title="100Ω Resistor" id="111230" label="R9"/>
+  </connector>
+  <connector name="Pin 0" id="connector0">
+   <part title="100Ω Resistor" id="107720" label="R8"/>
+  </connector>
+  <connector name="Pin 3" id="connector5">
+   <part title="Sharp PC817" id="122340" label="U1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 2" id="connector1">
+   <part title="Sharp PC817" id="122340" label="U1"/>
+  </connector>
+  <connector name="C" id="connector1">
+   <part title="SOLAR-IXYS" id="124220" label="D1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="anode" id="connector1">
+   <part title="Green (570nm) LED" id="122390" label="LED13"/>
+  </connector>
+  <connector name="D13" id="connector27">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="D5" id="connector7">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+  <connector name="anode" id="connector1">
+   <part title="Yellow (595nm) LED" id="122370" label="LED11"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="anode" id="connector1">
+   <part title="Red (633nm) LED" id="122380" label="LED12"/>
+  </connector>
+  <connector name="D23" id="connector14">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="VN" id="connector17">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+  <connector name="Pin 4" id="connector3">
+   <part title="Sharp PC817" id="122340" label="U1"/>
+  </connector>
+  <connector name="Pin 0" id="connector0">
+   <part title="10kΩ Resistor" id="130420" label="R17"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 1" id="connector0">
+   <part title="Sharp PC817" id="122340" label="U1"/>
+  </connector>
+  <connector name="Pin 0" id="connector0">
+   <part title="220Ω Resistor" id="124250" label="R16"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="A" id="connector0">
+   <part title="SOLAR-IXYS" id="124220" label="D1"/>
+  </connector>
+  <connector name="Pin 1" id="connector1">
+   <part title="220Ω Resistor" id="124250" label="R16"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="D15" id="connector2">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+  <connector name="Pin 4" id="connector3">
+   <part title="Pushbutton" id="117720" label="S6"/>
+  </connector>
+  <connector name="Pin 3" id="connector2">
+   <part title="Pushbutton" id="117720" label="S6"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="anode" id="connector1">
+   <part title="Red (633nm) LED" id="95820" label="LED5"/>
+  </connector>
+  <connector name="anode" id="connector1">
+   <part title="Red (633nm) LED" id="95850" label="LED6"/>
+  </connector>
+  <connector name="D26" id="connector23">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="D25" id="connector22">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+  <connector name="Pin 4" id="connector3">
+   <part title="Pushbutton" id="93860" label="S2"/>
+  </connector>
+  <connector name="Pin 3" id="connector2">
+   <part title="Pushbutton" id="93860" label="S2"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 1" id="connector0">
+   <part title="Pushbutton" id="114180" label="S5"/>
+  </connector>
+  <connector name="Pin 2" id="connector1">
+   <part title="Pushbutton" id="114180" label="S5"/>
+  </connector>
+  <connector name="pin 2" id="connector1">
+   <part title="DC Motor" id="85970" label="M2"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 4" id="connector3">
+   <part title="Pushbutton" id="114180" label="S5"/>
+  </connector>
+  <connector name="Pin 3" id="connector2">
+   <part title="Pushbutton" id="114180" label="S5"/>
+  </connector>
+  <connector name="VIN" id="connector29">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="anode" id="connector1">
+   <part title="Red (633nm) LED" id="95870" label="LED7"/>
+  </connector>
+  <connector name="D32" id="connector20">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="anode" id="connector1">
+   <part title="Red (633nm) LED" id="95880" label="LED8"/>
+  </connector>
+  <connector name="D33" id="connector21">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="D27" id="connector24">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+  <connector name="anode" id="connector1">
+   <part title="Red (633nm) LED" id="98470" label="LED9"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="anode" id="connector1">
+   <part title="Red (633nm) LED" id="98480" label="LED10"/>
+  </connector>
+  <connector name="D14" id="connector25">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="pin1" id="connector0">
+   <part title="fc-51" id="102130" label="M5"/>
+  </connector>
+  <connector name="D35" id="connector19">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="TX2" id="connector6">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+  <connector name="Pin 4" id="connector3">
+   <part title="Pushbutton" id="93900" label="S4"/>
+  </connector>
+  <connector name="Pin 3" id="connector2">
+   <part title="Pushbutton" id="93900" label="S4"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 4" id="connector3">
+   <part title="Pushbutton" id="93880" label="S3"/>
+  </connector>
+  <connector name="RX2" id="connector5">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+  <connector name="Pin 3" id="connector2">
+   <part title="Pushbutton" id="93880" label="S3"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="D4" id="connector4">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+  <connector name="Pin 4" id="connector3">
+   <part title="Pushbutton" id="93830" label="S1"/>
+  </connector>
+  <connector name="Pin 3" id="connector2">
+   <part title="Pushbutton" id="93830" label="S1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="VP" id="connector16">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+  <connector name="Pin 1" id="connector1">
+   <part title="10kΩ Resistor" id="120380" label="R12"/>
+  </connector>
+  <connector name="pin 1" id="connector1">
+   <part title="Photocell (LDR)" id="86000" label="R5"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="D34" id="connector18">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+  <connector name="pin1" id="connector0">
+   <part title="fc-51" id="91660" label="M4"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 1" id="connector1">
+   <part title="100Ω Resistor" id="102750" label="R6"/>
+  </connector>
+  <connector name="cathode" id="connector0">
+   <part title="Red (633nm) LED" id="98480" label="LED10"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 1" id="connector1">
+   <part title="100Ω Resistor" id="103020" label="R7"/>
+  </connector>
+  <connector name="cathode" id="connector0">
+   <part title="Red (633nm) LED" id="98470" label="LED9"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 1" id="connector1">
+   <part title="100Ω Resistor" id="123410" label="R15"/>
+  </connector>
+  <connector name="cathode" id="connector0">
+   <part title="Yellow (595nm) LED" id="122370" label="LED11"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 1" id="connector1">
+   <part title="100Ω Resistor" id="107720" label="R8"/>
+  </connector>
+  <connector name="cathode" id="connector0">
+   <part title="Red (633nm) LED" id="95850" label="LED6"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 1" id="connector1">
+   <part title="100Ω Resistor" id="123400" label="R14"/>
+  </connector>
+  <connector name="cathode" id="connector0">
+   <part title="Red (633nm) LED" id="122380" label="LED12"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 1" id="connector1">
+   <part title="100Ω Resistor" id="111230" label="R9"/>
+  </connector>
+  <connector name="cathode" id="connector0">
+   <part title="Red (633nm) LED" id="95820" label="LED5"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 1" id="connector1">
+   <part title="100Ω Resistor" id="123390" label="R13"/>
+  </connector>
+  <connector name="cathode" id="connector0">
+   <part title="Green (570nm) LED" id="122390" label="LED13"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 1" id="connector1">
+   <part title="100Ω Resistor" id="111590" label="R10"/>
+  </connector>
+  <connector name="cathode" id="connector0">
+   <part title="Red (633nm) LED" id="95880" label="LED8"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 1" id="connector1">
+   <part title="100Ω Resistor" id="111950" label="R11"/>
+  </connector>
+  <connector name="cathode" id="connector0">
+   <part title="Red (633nm) LED" id="95870" label="LED7"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 0" id="connector0">
+   <part title="220Ω Resistor" id="85560" label="R1"/>
+  </connector>
+  <connector name="cathode" id="connector0">
+   <part title="Yellow (595nm) LED" id="85420" label="LED1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 0" id="connector0">
+   <part title="220Ω Resistor" id="85670" label="R2"/>
+  </connector>
+  <connector name="cathode" id="connector0">
+   <part title="Yellow (595nm) LED" id="85500" label="LED2"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 0" id="connector0">
+   <part title="220Ω Resistor" id="85770" label="R3"/>
+  </connector>
+  <connector name="cathode" id="connector0">
+   <part title="Yellow (595nm) LED" id="85520" label="LED3"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="Pin 0" id="connector0">
+   <part title="220Ω Resistor" id="85870" label="R4"/>
+  </connector>
+  <connector name="cathode" id="connector0">
+   <part title="Yellow (595nm) LED" id="85540" label="LED4"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="TX0" id="connector12">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="EN" id="connector15">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="D22" id="connector13">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="D2" id="connector3">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="D12" id="connector26">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="RX0" id="connector11">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+ <net>
+  <connector name="D21" id="connector10">
+   <part title="DOIT Esp32 DevKit v1 (30 pins long, 11 pins width)" id="81580" label="M1"/>
+  </connector>
+ </net>
+</netlist>
