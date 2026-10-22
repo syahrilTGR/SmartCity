@@ -1,6 +1,6 @@
 # Daftar Keperluan Komponen & Belanja
 
-Dokumen ini memuat daftar belanja komponen yang diperlukan untuk proyek Smart City, mencakup modul **Traffic Light (Opsi A Terpilih dan Opsi B Alternatif)** serta komponen sistem utama ESP32.
+Dokumen ini memuat daftar belanja komponen yang diperlukan untuk proyek Smart City, mencakup modul **Traffic Light (Opsi A Terpilih dan Opsi B Alternatif)** serta komponen sistem utama ESP32 dengan sistem daya **Baterai 2S + Step-Down 5V**.
 
 ---
 
@@ -47,7 +47,19 @@ Dokumen ini memuat daftar belanja komponen yang diperlukan untuk proyek Smart Ci
 | 3 | **Sensor Cahaya LDR** | Fotoresistor LDR 5mm | 1 buah | Pendeteksi kondisi siang/malam |
 | 4 | **Dioda Flyback 1N4007** | 1N4007 (1A 1000V) | 1 – 2 buah | Proteksi lonjakan induktif dinamo Tamiya |
 | 5 | **Kapasitor Decoupling 220 µF – 470 µF** | Elektrolit 16V / 25V | 1 buah | Peredam drop tegangan saat dinamo dinyalakan |
-| 6 | **Saklar Manual On/Off** | Toggle Switch / Saklar Geser / Rocker | 1 buah | Saklar fisik manual dinamo kincir angin 5V |
-| 7 | **Soket Female BNC & Kabel BNC** | Soket BNC Chassis / PCB + Kabel BNC | 4 pasang | Media simulator rangkaian seri & paralel |
-| 8 | **Baterai 18650 & Holder** | Baterai Li-Ion 3.7V + Holder 2 Slot Paralel | 2 unit | Catu daya portabel miniatur Smart City |
-| 9 | **Modul Step-Up 5V** | MT3608 (2A) atau Modul Power Bank IP5306 | 1 unit | Menaikkan daya baterai 3.7V ke 5V stabil |
+| 6 | **Saklar Power Utama** | Toggle Switch / Rocker Switch (SPST) | 1 buah | Saklar fisik pemutus daya baterai 2S (Master Switch) |
+| 7 | **Saklar Manual Kincir** | Toggle Switch / Saklar Geser / Rocker | 1 buah | Saklar fisik manual dinamo kincir angin 5V |
+| 8 | **Saklar Toggle Sensor** | Toggle Switch / Saklar Geser mini (SPST) | 1 buah | Saklar toggle ke GPIO 15 (Logika sensor On/Off) |
+| 9 | **Soket Female BNC & Kabel BNC** | Soket BNC Chassis / PCB + Kabel BNC | 4 pasang | Media simulator rangkaian seri & paralel |
+| 10 | **Baterai 18650** | Baterai Li-Ion 3.7V (2.200 – 2.600 mAh) | 2 unit | Sel baterai untuk rangkaian 2S (7.4V) |
+| 11 | **Holder Baterai 18650 2 Slot Seri** | Holder 2S (Keluaran kabel 7.4V) | 1 unit | Tempat dudukan 2 baterai seri |
+| 12 | **Modul BMS 2S** | BMS 2S 8.4V (3A – 5A) | 1 unit | Proteksi overcharge, discharge & balancing baterai 2S |
+| 13 | **Modul Step-Down 5V** | Mini MP1584EN (3A) atau LM2596 Buck | 1 unit | Menurunkan tegangan 7.4V ke 5.0V stabil |
+| 14 | **PCB Matrix (Perfboard)** | PCB Matrix Lubang Tembaga (7x9 cm / 9x15 cm)| 1 – 2 keping | Papan sirkuit perakitan modul kontroler utama |
+| 15 | **Female Pin Header 1x15 Pin** | Header Lubang 2.54mm (Panjang 15-pin) | 2 baris | Socket dudukan lepas-pasang untuk ESP32 |
+| 16 | **Konektor JST-XH 2-Pin** | Male Header PCB + Female Plug Kabel (2.54mm)| 8 set | LDR, Solar, Toggle Sensor, LPJ Seri, Rumah 1-2, Rumah 3-4, Power, Dinamo |
+| 17 | **Konektor JST-XH 3-Pin** | Male Header PCB + Female Plug Kabel (2.54mm)| 4 set | Sensor IR 1 & 2, LPJ Bawah Paralel, BNC Paralel |
+| 18 | **Konektor JST-XH 4-Pin** | Male Header PCB + Female Plug Kabel (2.54mm)| 3 set | BNC Seri Anti-Curang, LPJ Atas, Traffic Light VKS |
+
+
+

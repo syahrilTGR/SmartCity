@@ -23,11 +23,13 @@ pio device monitor           # Serial monitor (115200 baud)
 ```
 
 ## Arsitektur Singkat
-1. **Penerangan Rumah (4 LED):** GPIO 18, 19, 21, 22.
+1. **Penerangan Rumah (4 LED):** GPIO 18 (Rumah 1 & 2) & GPIO 19 (Rumah 3 & 4) — masing-masing 2 LED diparalel fisik (Resistor 100 Ohm).
 2. **LPJ Jalur Atas (2 LED):** GPIO 14, 27 — dipicu mandiri 24/7 oleh IR Proximity 1 (GPIO 34) & IR Proximity 2 (GPIO 35).
 3. **LPJ Jalur Bawah (4 LED):** 
-   - Master Enable: LDR (GPIO 36 / VP, aktif malam hari).
-   - Seri (2 LED: GPIO 26, 25): Dipicu oleh loop sensing BNC seri pada GPIO 4 (`INPUT_PULLUP`).
+   - Master Enable: LDR (GPIO 36 / VP, aktif malam hari) & Saklar Toggle Sensor (GPIO 15, `INPUT_PULLUP`).
+   - Seri Anti-Curang (2 LED di GPIO 26 diparalel fisik): Dipicu ganda oleh loop BNC 1-2 pada GPIO 4 dan loop BNC 3-4 pada GPIO 25 (`INPUT_PULLUP`).
    - Paralel (2 LED: GPIO 33, 32): Dipicu oleh sensing BNC cabang 1 pada GPIO 16 dan cabang 2 pada GPIO 17 (`INPUT_PULLUP`).
-4. **Dummy Turbin Angin:** Dinamo Tamiya 5V dengan saklar fisik manual (tanpa GPIO).
+4. **Dummy Turbin Angin:** Dinamo Tamiya 5V + Saklar fisik manual (tanpa GPIO, proteksi Dioda 1N4007 & Kapasitor 470 uF).
 5. **Traffic Light VKS:** GPIO 23 (R), GPIO 5 (Y), GPIO 13 (G) — dipantau sinyal daya solar via Optocoupler PC817 pada GPIO 39 (VN).
+6. **Catu Daya:** Baterai 18650 2S (7.4V) + BMS 2S -> Saklar Master -> Modul Step-Down 5V (MP1584EN).
+

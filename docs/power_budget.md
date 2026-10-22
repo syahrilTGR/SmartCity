@@ -1,6 +1,6 @@
 # Analisis Arus & Kelistrikan (Power Budget)
 
-Dokumen ini memuat analisis kelistrikan, batas aman IC regulator 3.3V (ESP32 varian **xx5r69**), kalkulasi resistor LED, proteksi beban dinamo, serta estimasi kapasitas baterai 3.7V dan modul step-up 5V.
+Dokumen ini memuat analisis kelistrikan, batas aman IC regulator 3.3V (ESP32 varian **xx5r69**), kalkulasi resistor LED, proteksi beban dinamo, serta perancangan catu daya **Baterai 18650 Konfigurasi 2S (7.4V) + Modul Step-Down 5V**.
 
 ---
 
@@ -30,10 +30,10 @@ R = (Vs - Vf) / If
   `Vf_total = 3.0V + 3.0V = 6.0 Volt`
 - **Kendala Fisik:** Tegangan sumber 3.3V maupun 5V USB **kurang dari 6V**, sehingga 2 LED seri fisik **tidak dapat menyala**.
 - **Solusi Desain Proyek:**
-  - Proyek ini menggunakan **Pendekatan Logika ESP32 (Sensing)**.
-  - Seluruh LED fisik LPJ jalur bawah tetap ditenagai mandiri pada pin GPIO masing-masing secara individual (3.3V) dengan resistor 100 Ohm.
-  - Efek rangkaian seri (jika 1 kabel BNC / tombol dicabut maka semua lampu mati) dikendalikan sepenuhnya melalui logika kode program ESP32.
-  - **Keuntungan:** Sistem **TIDAK MEMERLUKAN SUMBER DAYA 6V/9V/12V**, cukup 1 catu daya 5V untuk seluruh sistem.
+  - Kedua LED LPJ seri kiri bawah **dikontrol bersamaan dari pin GPIO 26** dan **diparalel secara fisik** (masing-masing memiliki resistor 100 Ohm ke GND).
+  - Arus total 2 LED pada GPIO 26 hanya `3 mA + 3 mA = 6 mA` (sangat aman di bawah batas pin 12 – 20 mA).
+  - Efek rangkaian seri (jika 1 kabel BNC dicabut maka semua lampu mati) dikendalikan sepenuhnya melalui logika mikrokontroler ESP32 dengan sensor ganda anti-curang pada **GPIO 4** dan **GPIO 25**.
+  - **Keuntungan:** Sistem **TIDAK MEMERLUKAN SUMBER DAYA 6V/9V/12V**, cukup 1 catu daya 5V dari output Step-Down.
 
 ---
 
@@ -43,16 +43,18 @@ ESP32 varian **xx5r69** (NodeMCU ESP32-WROOM-32) umumnya menggunakan regulator L
 * **AMS1117-3.3 (SOT-223):** Kapasitas nominal 800 mA – 1000 mA, batas termal kontinu aman ~500 mA.
 * **ME6211 / AP2112K (SOT-89/SOT-23-5):** Batas aman ~400 – 500 mA.
 
-### Neraca Arus Sistem Internal:
+### Neraca Arus Sistem Internal (3.3V):
 1. **Konsumsi Chip ESP32:**
    - Dual-Core aktif: ~80 – 120 mA.
    - Transmisi puncak RF/Wi-Fi (*burst*): ~240 – 400 mA.
 2. **Batas Kumulatif GPIO ESP32 (Rekomendasi Espressif):**
-   - Maksimum per pin: 12 – 20 mA.
+   - Maksimum per pin: 12 – 20 mA (maksimum absolut 40 mA).
+   - Beban 2 LED paralel pada GPIO 18, 19, dan 26 hanya menarik ~6 – 12 mA per pin (sangat aman).
    - Total arus seluruh pin GPIO bersamaan: **<= 100 – 120 mA**.
 3. **Beban 10 LED Proyek Smart City (Resistor 100 Ohm):**
    - `Total Arus 10 LED = 10 x 3 mA = 30 mA`.
-   - Angka 30 mA ini hanya memakai 25% dari batas aman GPIO (120 mA), sehingga regulator 3.3V dan chip ESP32 dipastikan tetap dingin dan bebas dari *brownout reset*.
+   - Hanya memakai 25% dari kapasitas aman GPIO (120 mA).
+
 
 ---
 
@@ -60,60 +62,66 @@ ESP32 varian **xx5r69** (NodeMCU ESP32-WROOM-32) umumnya menggunakan regulator L
 
 Dinamo Tamiya (Motor DC 130) menarik arus kerja 250 – 350 mA dan lonjakan start (*surge*) hingga 1.5 A.
 
-1. **Jalur Daya Terpisah:** Dinamo ditenagai langsung dari jalur **5V**, **TIDAK melalui regulator 3.3V ESP32**.
+1. **Jalur Daya Terpisah:** Dinamo ditenagai langsung dari jalur **5V (Output Step-Down)**, **TIDAK melalui regulator 3.3V ESP32**.
 2. **Dioda Flyback (1N4007):** Dipasang paralel terbalik pada terminal dinamo untuk meredam lonjakan tegangan induktif (*back-EMF*) saat saklar dimatikan.
 3. **Kapasitor Decoupling (220µF - 470µF):** Dipasang di jalur daya 5V dinamo untuk mencegah drop tegangan sesaat yang dapat memicu *Brownout Reset* pada ESP32.
 
 ---
 
-## 5. Sumber Daya Baterai 3.7V & Modul Step-Up 5V
+## 5. Sumber Daya Baterai 2S (7.4V) & Modul Step-Down 5V
 
-Sistem dirancang dapat beroperasi secara portabel menggunakan baterai Lithium 3.7V (tipe 18650) yang dinaikkan tegangannya ke 5V melalui modul Step-Up (Boost Converter).
+Sistem beralih menggunakan konfigurasi **Baterai 18650 Seri (2S = 7.4V nominal / 8.4V full)** yang diturunkan tegangannya ke 5.0V melalui modul **Step-Down (Buck Converter)**.
 
-### A. Skema Distribusi Daya
+### A. Mengapa Step-Down 2S Jauh Lebih Unggul daripada Step-Up?
+1. **Efisiensi Sangat Tinggi:** Modul Step-Down (Buck) memiliki efisiensi **90% – 94%**, bekerja jauh lebih dingin dibanding Step-Up.
+2. **Arus Baterai Jauh Lebih Rendah:** Karena tegangan baterai (7.4V) lebih tinggi dari tegangan output (5.0V), maka **arus yang ditarik dari baterai justru lebih kecil dibanding arus beban 5V**, sehingga sel baterai tidak terbebani dan tegangan tidak drop saat dinamo menyala.
+
+### B. Skema Distribusi Daya 2S
 ```text
-Baterai 3.7V (18650 Paralel) ───> Modul Step-Up 5V (MT3608 / IP5306)
-                                        │
-                         ┌──────────────┴──────────────┐
-                         │                             │
-                   Pin VIN ESP32             Saklar Dinamo Tamiya 5V
-                         │                             │
-               (ESP32, Sensor, 10 LED)        (Motor Kincir Angin)
+Baterai 18650 (2S = 7.4V) ───[ Modul BMS 2S ]───[ Saklar Power Utama ]───> [ Modul Step-Down 5V (MP1584EN) ]
+                                                                                         │
+                                                                           Jalur Daya +5V Bersama (Stabil)
+                                                                                         │
+                                                                           ┌─────────────┴─────────────┐
+                                                                           │                           │
+                                                                     Pin VIN ESP32           Saklar Dinamo Kincir 5V
 ```
 
-### B. Konsumsi Arus Riil pada Jalur 5V
+### C. Konsumsi Arus Riil pada Jalur 5V (Beban Output)
 1. **Sub-Sistem ESP32 & Elektronika:**
    - ESP32 Dual-Core: ~100 mA
-   - 10 LED (R 100 Ohm): ~30 mA
+   - 10 LED Miniatur (R 100 Ohm): ~30 mA
    - 2 Sensor IR Proximity: ~35 mA
+   - Modul Traffic Light VKS: ~15 mA (1 warna aktif)
    - Sensor LDR & Pull-up: ~1 mA
-   - *Total Elektronika:* **~166 mA**
+   - *Total Elektronika:* **~181 mA**
 2. **Sub-Sistem Dinamo Kincir Angin:**
    - Dinamo Tamiya 130 (Beban Kincir Ringan): **~300 mA**
 
-### C. Total Arus Beban pada 5V:
-* **Kondisi 1 — Kincir Angin OFF (Hanya Lampu & Sensor):** `~166 mA` (Daya: ~0.83 Watt)
-* **Kondisi 2 — Kincir Angin ON (Sistem Penuh):** `~466 – 500 mA` (Daya: ~2.5 Watt)
+### D. Total Arus Beban pada 5V:
+* **Kondisi 1 — Kincir Angin OFF (Hanya Lampu & Sensor):** `~181 mA` (Daya: ~0.90 Watt)
+* **Kondisi 2 — Kincir Angin ON (Sistem Penuh):** `~481 – 500 mA` (Daya: ~2.5 Watt)
 
-### D. Arus yang Ditarik dari Baterai 3.7V
-Dengan efisiensi modul step-up sebesar 85%:
+### E. Arus yang Ditarik dari Baterai 2S (7.4V)
+Dengan efisiensi modul step-down sebesar 90%:
 ```text
-Arus Baterai = (5.0V x Arus 5V) / (3.7V x 0.85) ≈ 1.6 x Arus 5V
+Daya Baterai = Daya Beban 5V / 0.90
+Arus Baterai (I_bat) = (5.0V x I_beban) / (7.4V x 0.90) ≈ 0.75 x I_beban
 ```
-* **Saat Kincir Angin OFF:** Arus baterai = `166 mA x 1.6 ≈ 265 mA` (0.265 A)
-* **Saat Kincir Angin ON:** Arus baterai = `500 mA x 1.6 ≈ 800 mA` (0.8 A)
+* **Saat Kincir Angin OFF:** Arus baterai = `181 mA x 0.75 ≈ 135 mA` (0.135 A)
+* **Saat Kincir Angin ON:** Arus baterai = `500 mA x 0.75 ≈ 375 mA` (0.375 A)
 
-### E. Tabel Estimasi Daya Tahan Baterai (Tipe 18650 @ 2.200 mAh per sel)
+### F. Tabel Estimasi Daya Tahan Baterai 2S (Baterai 18650 @ 2.200 mAh)
 
-| Konfigurasi Baterai 18650 | Total Kapasitas | Daya Tahan (Kincir Angin ON) | Daya Tahan (Kincir Angin OFF) | Rekomendasi Penggunaan |
+| Konfigurasi Baterai | Kapasitas Paket | Daya Tahan (Kincir Angin ON) | Daya Tahan (Kincir Angin OFF) | Keterangan |
 | :---: | :---: | :---: | :---: | :--- |
-| **1 Sel (1P)** | 2.200 mAh | **~2,5 Jam** | **~8 Jam** | Cukup untuk pengujian cepat |
-| **2 Sel Paralel (2P)** | **4.400 mAh** | **~5 Jam** | **~16 Jam** | **REKOMENDASI TERBAIK:** Sangat ideal untuk demo / pameran seharian |
-| **3 Sel Paralel (3P)** | 6.600 mAh | **~8 Jam** | **~24 Jam** | Ekstra awet untuk operasional non-stop |
+| **2S1P (2 Sel Seri)** | **2.200 mAh (16.28 Wh)** | **~5,5 sampai 6 Jam** | **~16 sampai 17 Jam** | **STANDAR TERPILIH:** Sangat cukup untuk pameran / demo |
+| **2S2P (4 Sel Seri-Paralel)** | 4.400 mAh (32.56 Wh) | **~11 sampai 12 Jam** | **~32 Jam** | Daya tahan ekstra lama |
 
-### F. Rekomendasi Pilihan Modul Hardware:
-1. **Opsi 1: Modul Step-Up MT3608 (2A)**
-   - Efisiensi tinggi, trimpot diputar hingga output tepat 5.0V.
-   - Memerlukan modul charger terpisah seperti TP4056 dengan proteksi baterai (DW01/FS8205).
-2. **Opsi 2: Modul Power Bank DIY (Chip IP5306)**
-   - Solusi all-in-one paling praktis: sudah dilengkapi port charging USB Type-C, step-up boost 5V 2A, proteksi kehabisan baterai (*low voltage cut-off*), dan indikator 4 level LED baterai.
+### G. Rekomendasi Modul Hardware Power 2S:
+1. **Modul BMS 2S (8.4V 3A – 5A):**
+   - Wajib dipasang melintasi baterai 2S untuk proteksi *overcharge*, *overdischarge* (< 3V per sel), dan *short-circuit*.
+2. **Modul Step-Down Mini MP1584EN (3A):**
+   - Bentuk sangat mungil, efisiensi tinggi (> 90%), trimpot diputar hingga output tepat **5.0V**.
+3. **Saklar Power Utama (Master Switch):**
+   - Dipasang pada kabel positif (+) baterai 2S sebelum masuk ke input modul step-down agar tidak ada arus siaga yang terbuang saat sistem dimatikan.
