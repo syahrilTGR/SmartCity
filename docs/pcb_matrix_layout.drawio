@@ -63,7 +63,7 @@
         </mxCell>
 
         <!-- J_LPJ_ATAS -->
-        <mxCell id="jst_lpj_atas" value="&lt;b style=&quot;color: #4ade80;&quot;&gt;J_LPJ_ATAS [4-Pin]&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9.5px; color: #f8fafc;&quot;&gt;1:D14 | 2:GND | 3:D27 | 4:GND&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px; color: #94a3b8;&quot;&gt;Kolom K, L, M, N | Baris 1-2&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#4ade80;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="jst_lpj_atas" value="&lt;b style=&quot;color: #4ade80;&quot;&gt;J_LPJ_ATAS [4-Pin]&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px; color: #f8fafc;&quot;&gt;1:D14[R] | 2:GND | 3:D27[R] | 4:GND&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8.5px; color: #a7f3d0;&quot;&gt;2x R=100Ω On-Board | K, L, M, N&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#4ade80;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="555" y="120" width="165" height="70" as="geometry"/>
         </mxCell>
 
@@ -73,7 +73,7 @@
         </mxCell>
 
         <!-- J_LPJ_BAWAH -->
-        <mxCell id="jst_lpj_bawah" value="&lt;b style=&quot;color: #4ade80;&quot;&gt;LPJ_PAR [3-Pin]&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9.5px; color: #f8fafc;&quot;&gt;1:D32 | 2:Common GND | 3:D33&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px; color: #94a3b8;&quot;&gt;Kolom P, Q, R | Baris 1-2&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#4ade80;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="jst_lpj_bawah" value="&lt;b style=&quot;color: #4ade80;&quot;&gt;LPJ_PAR [3-Pin]&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px; color: #f8fafc;&quot;&gt;1:D32[R] | 2:Common GND | 3:D33[R]&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8.5px; color: #a7f3d0;&quot;&gt;2x R=100Ω On-Board | P, Q, R&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#4ade80;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="765" y="120" width="130" height="70" as="geometry"/>
         </mxCell>
 
@@ -102,8 +102,8 @@
         </mxCell>
 
         <!-- J_LPJ_SERI -->
-        <mxCell id="jst_seri" value="&lt;b style=&quot;color: #4ade80;&quot;&gt;SERI [2-Pin]&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #f8fafc;&quot;&gt;1:LED(+) | 2:GND&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px; color: #94a3b8;&quot;&gt;Kolom M, N | B5-6 (➔ D26)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#4ade80;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="620" y="270" width="105" height="65" as="geometry"/>
+        <mxCell id="jst_seri" value="&lt;b style=&quot;color: #4ade80;&quot;&gt;SERI [2-Pin]&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9.5px; color: #f8fafc;&quot;&gt;1:LED+[R] | 2:GND&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8.5px; color: #a7f3d0;&quot;&gt;R=47-51Ω On-Board (➔ D26)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#4ade80;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="620" y="270" width="115" height="65" as="geometry"/>
         </mxCell>
 
         <!-- J_LDR -->
@@ -136,12 +136,12 @@
         </mxCell>
 
         <!-- Socket Header Baris Atas ESP32 (Baris 10) -->
-        <mxCell id="esp32_pin_top" value="&lt;b style=&quot;color: #f8fafc; font-size: 9.5px;&quot;&gt;VIN &amp;nbsp; GND &amp;nbsp; D13 &amp;nbsp; D12 &amp;nbsp; D14 &amp;nbsp; D27 &amp;nbsp; D26 &amp;nbsp; D25 &amp;nbsp; D33 &amp;nbsp; D32 &amp;nbsp; D35 &amp;nbsp; D34 &amp;nbsp; VN &amp;nbsp; VP &amp;nbsp; EN&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color: #38bdf8; font-size: 9px;&quot;&gt;▲ BARIS ATAS ESP32 (BARIS 10: KOLOM E s/d S) ▲&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#38bdf8;strokeWidth=1.5;" vertex="1" parent="1">
+        <mxCell id="esp32_pin_top" value="&lt;b style=&quot;color: #f8fafc; font-size: 9px;&quot;&gt;VIN &amp;nbsp; GND &amp;nbsp; &lt;font color=&quot;#4ade80&quot;&gt;D13[R]&lt;/font&gt; &amp;nbsp; D12 &amp;nbsp; &lt;font color=&quot;#4ade80&quot;&gt;D14[R]&lt;/font&gt; &amp;nbsp; &lt;font color=&quot;#4ade80&quot;&gt;D27[R]&lt;/font&gt; &amp;nbsp; &lt;font color=&quot;#4ade80&quot;&gt;D26[R]&lt;/font&gt; &amp;nbsp; D25 &amp;nbsp; &lt;font color=&quot;#4ade80&quot;&gt;D33[R]&lt;/font&gt; &amp;nbsp; &lt;font color=&quot;#4ade80&quot;&gt;D32[R]&lt;/font&gt; &amp;nbsp; D35 &amp;nbsp; D34 &amp;nbsp; VN &amp;nbsp; VP &amp;nbsp; EN&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color: #38bdf8; font-size: 9px;&quot;&gt;▲ BARIS ATAS ESP32 (BARIS 10: KOLOM E s/d S) ▲&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#38bdf8;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="295" y="485" width="540" height="38" as="geometry"/>
         </mxCell>
 
         <!-- Socket Header Baris Bawah ESP32 (Baris 20) -->
-        <mxCell id="esp32_pin_bottom" value="&lt;span style=&quot;color: #38bdf8; font-size: 9px;&quot;&gt;▼ BARIS BAWAH ESP32 (BARIS 20: KOLOM E s/d S) ▼&lt;/span&gt;&lt;br&gt;&lt;b style=&quot;color: #f8fafc; font-size: 9.5px;&quot;&gt;3V3 &amp;nbsp; GND &amp;nbsp; D15 &amp;nbsp; D2 &amp;nbsp; D4 &amp;nbsp; RX2 &amp;nbsp; TX2 &amp;nbsp; D5 &amp;nbsp; D18 &amp;nbsp; D19 &amp;nbsp; D21 &amp;nbsp; D22 &amp;nbsp; TX0 &amp;nbsp; RX0 &amp;nbsp; D23&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#38bdf8;strokeWidth=1.5;" vertex="1" parent="1">
+        <mxCell id="esp32_pin_bottom" value="&lt;span style=&quot;color: #38bdf8; font-size: 9px;&quot;&gt;▼ BARIS BAWAH ESP32 (BARIS 20: KOLOM E s/d S) ▼&lt;/span&gt;&lt;br&gt;&lt;b style=&quot;color: #f8fafc; font-size: 9px;&quot;&gt;3V3 &amp;nbsp; GND &amp;nbsp; D15 &amp;nbsp; D2 &amp;nbsp; D4 &amp;nbsp; RX2 &amp;nbsp; TX2 &amp;nbsp; &lt;font color=&quot;#4ade80&quot;&gt;D5[R]&lt;/font&gt; &amp;nbsp; &lt;font color=&quot;#4ade80&quot;&gt;D18[R]&lt;/font&gt; &amp;nbsp; &lt;font color=&quot;#4ade80&quot;&gt;D19[R]&lt;/font&gt; &amp;nbsp; D21 &amp;nbsp; D22 &amp;nbsp; TX0 &amp;nbsp; RX0 &amp;nbsp; &lt;font color=&quot;#4ade80&quot;&gt;D23[R]&lt;/font&gt;&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#38bdf8;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="295" y="910" width="540" height="38" as="geometry"/>
         </mxCell>
 
@@ -159,7 +159,7 @@
         <!-- ============================================================= -->
 
         <!-- J_HOUSE_1_2 -->
-        <mxCell id="jst_house1" value="&lt;b style=&quot;color: #4ade80;&quot;&gt;HOUSE1-2 [2P]&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #f8fafc;&quot;&gt;1:D18 | 2:GND&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px; color: #94a3b8;&quot;&gt;Kolom C, D | B28-29&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#4ade80;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="jst_house1" value="&lt;b style=&quot;color: #4ade80;&quot;&gt;HOUSE1-2 [2P]&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9.5px; color: #f8fafc;&quot;&gt;1:D18[R] | 2:GND&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8.5px; color: #a7f3d0;&quot;&gt;R=47-51Ω | C, D&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#4ade80;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="205" y="1330" width="100" height="70" as="geometry"/>
         </mxCell>
 
@@ -169,7 +169,7 @@
         </mxCell>
 
         <!-- J_HOUSE_3_4 -->
-        <mxCell id="jst_house2" value="&lt;b style=&quot;color: #4ade80;&quot;&gt;HOUSE3-4 [2P]&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #f8fafc;&quot;&gt;1:D19 | 2:GND&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px; color: #94a3b8;&quot;&gt;Kolom F, G | B28-29&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#4ade80;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="jst_house2" value="&lt;b style=&quot;color: #4ade80;&quot;&gt;HOUSE3-4 [2P]&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9.5px; color: #f8fafc;&quot;&gt;1:D19[R] | 2:GND&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8.5px; color: #a7f3d0;&quot;&gt;R=47-51Ω | F, G&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#4ade80;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="350" y="1330" width="100" height="70" as="geometry"/>
         </mxCell>
 
@@ -199,12 +199,12 @@
         </mxCell>
 
         <!-- J_TL -->
-        <mxCell id="jst_tl" value="&lt;b style=&quot;color: #4ade80;&quot;&gt;J_TL VKS [4-Pin]&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px; color: #f8fafc;&quot;&gt;1:D23(R) | 2:D5(Y) | 3:D13(G) | 4:GND&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px; color: #94a3b8;&quot;&gt;Kolom R, S, T, U | Baris 28-29&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#4ade80;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="870" y="1330" width="135" height="70" as="geometry"/>
+        <mxCell id="jst_tl" value="&lt;b style=&quot;color: #4ade80;&quot;&gt;J_TL VKS [4-Pin]&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8.5px; color: #f8fafc;&quot;&gt;1:D23[R] | 2:D5[R] | 3:D13[R] | 4:GND&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px; color: #a7f3d0;&quot;&gt;3x R=100Ω On-Board | R, S, T, U&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#4ade80;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="870" y="1330" width="140" height="70" as="geometry"/>
         </mxCell>
 
         <!-- LEGENDA & CATATAN ATURAN -->
-        <mxCell id="legend_box" value="&lt;b style=&quot;color: #38bdf8;&quot;&gt;ATURAN MEKANIK &amp;amp; PERAKITAN:&lt;/b&gt; &amp;nbsp; 1. &lt;font color=&quot;#f87171&quot;&gt;&lt;b&gt;4 Lubang Baut 2x2&lt;/b&gt;&lt;/font&gt; di tiap sudut (A-B &amp;amp; X-Y) dikosongkan untuk standoff PCB. &amp;nbsp; 2. &lt;font color=&quot;#facc15&quot;&gt;&lt;b&gt;Spasi 1 Lubang (2.54mm)&lt;/b&gt;&lt;/font&gt; di antara soket JST mencegah tabrakan bodi plastik saat kabel dicolok/dicabut." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#334155;fontColor=#cbd5e1;fontSize=11;align=center;" vertex="1" parent="1">
+        <mxCell id="legend_box" value="&lt;b style=&quot;color: #38bdf8;&quot;&gt;ATURAN FISIK &amp;amp; RESISTOR:&lt;/b&gt; &amp;nbsp; 1. &lt;font color=&quot;#f87171&quot;&gt;&lt;b&gt;4 Lubang Baut 2x2&lt;/b&gt;&lt;/font&gt; di tiap sudut kosong untuk standoff. &amp;nbsp; 2. &lt;font color=&quot;#facc15&quot;&gt;&lt;b&gt;Spasi 1 Lubang&lt;/b&gt;&lt;/font&gt; antar soket JST. &amp;nbsp; 3. &lt;font color=&quot;#4ade80&quot;&gt;&lt;b&gt;[R] On-Board:&lt;/b&gt;&lt;/font&gt; Seluruh jalur GPIO ke LED dipasang resistor seri langsung di PCB (100Ω / 47-51Ω)." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#334155;fontColor=#cbd5e1;fontSize=10.5;align=center;" vertex="1" parent="1">
           <mxGeometry x="80" y="1460" width="1040" height="50" as="geometry"/>
         </mxCell>
 

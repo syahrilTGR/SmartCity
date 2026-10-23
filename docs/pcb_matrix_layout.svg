@@ -133,13 +133,13 @@
   <!-- Kolom K - N (520 s/d 634), Baris 1-2 -->
   <g id="J_LPJ_ATAS">
     <rect x="502" y="118" width="150" height="64" rx="5" fill="#1e293b" stroke="#4ade80" stroke-width="2" filter="url(#shadow)"/>
-    <text x="577" y="142" font-size="11" font-weight="bold" fill="#4ade80" text-anchor="middle">J_LPJ_ATAS [4P]</text>
-    <text x="577" y="158" font-size="8.5" fill="#f8fafc" text-anchor="middle">1:D14 | 2:GND | 3:D27 | 4:GND</text>
-    <text x="577" y="172" font-size="8" fill="#94a3b8" text-anchor="middle">Kolom: K, L, M, N</text>
-    <circle cx="520" cy="131" r="3.5" fill="#4ade80"/>
-    <circle cx="558" cy="131" r="3.5" fill="#4ade80"/>
-    <circle cx="596" cy="131" r="3.5" fill="#4ade80"/>
-    <circle cx="634" cy="131" r="3.5" fill="#4ade80"/>
+    <text x="577" y="140" font-size="11" font-weight="bold" fill="#4ade80" text-anchor="middle">J_LPJ_ATAS [4P]</text>
+    <text x="577" y="156" font-size="8.2" fill="#f8fafc" text-anchor="middle">1:D14 [R] | 2:GND | 3:D27 [R] | 4:GND</text>
+    <text x="577" y="172" font-size="8" fill="#a7f3d0" text-anchor="middle">2x R=100Ω On-Board (Kolom K..N)</text>
+    <circle cx="520" cy="129" r="3.5" fill="#4ade80"/>
+    <circle cx="558" cy="129" r="3.5" fill="#4ade80"/>
+    <circle cx="596" cy="129" r="3.5" fill="#4ade80"/>
+    <circle cx="634" cy="129" r="3.5" fill="#4ade80"/>
   </g>
 
   <!-- [SPACE 1 PIN: Kolom O (672) Kosong] -->
@@ -150,12 +150,12 @@
   <!-- Kolom P - R (710 s/d 786), Baris 1-2 -->
   <g id="J_LPJ_BAWAH">
     <rect x="692" y="118" width="112" height="64" rx="5" fill="#1e293b" stroke="#4ade80" stroke-width="2" filter="url(#shadow)"/>
-    <text x="748" y="142" font-size="11" font-weight="bold" fill="#4ade80" text-anchor="middle">LPJ_PAR [3P]</text>
-    <text x="748" y="158" font-size="8.5" fill="#f8fafc" text-anchor="middle">1:D32 | 2:GND | 3:D33</text>
-    <text x="748" y="172" font-size="8" fill="#94a3b8" text-anchor="middle">Kolom: P, Q, R</text>
-    <circle cx="710" cy="131" r="3.5" fill="#4ade80"/>
-    <circle cx="748" cy="131" r="3.5" fill="#4ade80"/>
-    <circle cx="786" cy="131" r="3.5" fill="#4ade80"/>
+    <text x="748" y="140" font-size="11" font-weight="bold" fill="#4ade80" text-anchor="middle">LPJ_PAR [3P]</text>
+    <text x="748" y="156" font-size="8.2" fill="#f8fafc" text-anchor="middle">1:D32 [R] | 2:GND | 3:D33 [R]</text>
+    <text x="748" y="172" font-size="8" fill="#a7f3d0" text-anchor="middle">2x R=100Ω On-Board (P..R)</text>
+    <circle cx="710" cy="129" r="3.5" fill="#4ade80"/>
+    <circle cx="748" cy="129" r="3.5" fill="#4ade80"/>
+    <circle cx="786" cy="129" r="3.5" fill="#4ade80"/>
   </g>
 
   <!-- [SPACE: Kolom S, T, U Area Luang] -->
@@ -207,11 +207,11 @@
   <!-- Kolom M - N (596 s/d 634), Baris 5-6 -->
   <g id="J_LPJ_SERI">
     <rect x="578" y="286" width="74" height="64" rx="5" fill="#1e293b" stroke="#4ade80" stroke-width="2" filter="url(#shadow)"/>
-    <text x="615" y="312" font-size="11" font-weight="bold" fill="#4ade80" text-anchor="middle">SERI [2P]</text>
-    <text x="615" y="328" font-size="9" fill="#f8fafc" text-anchor="middle">1:LED(+) | 2:GND</text>
-    <text x="615" y="341" font-size="8" fill="#94a3b8" text-anchor="middle">B5-6 (M, N) ➔ D26</text>
-    <circle cx="596" cy="304" r="3.5" fill="#4ade80"/>
-    <circle cx="634" cy="304" r="3.5" fill="#4ade80"/>
+    <text x="615" y="310" font-size="11" font-weight="bold" fill="#4ade80" text-anchor="middle">SERI [2P]</text>
+    <text x="615" y="326" font-size="8.5" fill="#f8fafc" text-anchor="middle">1:LED+[R] | 2:GND</text>
+    <text x="615" y="340" font-size="7.5" fill="#a7f3d0" text-anchor="middle">R=47-51Ω (➔ D26)</text>
+    <circle cx="596" cy="301" r="3.5" fill="#4ade80"/>
+    <circle cx="634" cy="301" r="3.5" fill="#4ade80"/>
   </g>
 
   <!-- [SPACE: Kolom O, P, Q Kosong] -->
@@ -251,17 +251,17 @@
 
     <!-- BARIS PIN ATAS (Baris 10: Y = 514) -->
     <rect x="278" y="494" width="554" height="40" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
-    <g font-size="9" font-weight="bold" text-anchor="middle">
+    <g font-size="8.5" font-weight="bold" text-anchor="middle">
       <circle cx="292" cy="514" r="6" fill="#ef4444"/><text x="292" y="486" fill="#f87171">VIN</text>
       <circle cx="330" cy="514" r="6" fill="#64748b"/><text x="330" y="486" fill="#94a3b8">GND</text>
-      <circle cx="368" cy="514" r="6" fill="#22c55e"/><text x="368" y="486" fill="#4ade80">D13</text>
+      <circle cx="368" cy="514" r="6" fill="#22c55e"/><text x="368" y="486" fill="#4ade80">D13[R]</text>
       <circle cx="406" cy="514" r="6" fill="#334155"/><text x="406" y="486" fill="#64748b">D12</text>
-      <circle cx="444" cy="514" r="6" fill="#22c55e"/><text x="444" y="486" fill="#4ade80">D14</text>
-      <circle cx="482" cy="514" r="6" fill="#22c55e"/><text x="482" y="486" fill="#4ade80">D27</text>
-      <circle cx="520" cy="514" r="6" fill="#22c55e"/><text x="520" y="486" fill="#4ade80">D26</text>
+      <circle cx="444" cy="514" r="6" fill="#22c55e"/><text x="444" y="486" fill="#4ade80">D14[R]</text>
+      <circle cx="482" cy="514" r="6" fill="#22c55e"/><text x="482" y="486" fill="#4ade80">D27[R]</text>
+      <circle cx="520" cy="514" r="6" fill="#22c55e"/><text x="520" y="486" fill="#4ade80">D26[R]</text>
       <circle cx="558" cy="514" r="6" fill="#06b6d4"/><text x="558" y="486" fill="#22d3ee">D25</text>
-      <circle cx="596" cy="514" r="6" fill="#22c55e"/><text x="596" y="486" fill="#4ade80">D33</text>
-      <circle cx="634" cy="514" r="6" fill="#22c55e"/><text x="634" y="486" fill="#4ade80">D32</text>
+      <circle cx="596" cy="514" r="6" fill="#22c55e"/><text x="596" y="486" fill="#4ade80">D33[R]</text>
+      <circle cx="634" cy="514" r="6" fill="#22c55e"/><text x="634" y="486" fill="#4ade80">D32[R]</text>
       <circle cx="672" cy="514" r="6" fill="#06b6d4"/><text x="672" y="486" fill="#22d3ee">D35</text>
       <circle cx="710" cy="514" r="6" fill="#06b6d4"/><text x="710" y="486" fill="#22d3ee">D34</text>
       <circle cx="748" cy="514" r="6" fill="#eab308"/><text x="748" y="486" fill="#facc15">VN</text>
@@ -271,7 +271,7 @@
 
     <!-- BARIS PIN BAWAH (Baris 20: Y = 934) -->
     <rect x="278" y="914" width="554" height="40" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
-    <g font-size="9" font-weight="bold" text-anchor="middle">
+    <g font-size="8.5" font-weight="bold" text-anchor="middle">
       <circle cx="292" cy="934" r="6" fill="#ef4444"/><text x="292" y="970" fill="#f87171">3V3</text>
       <circle cx="330" cy="934" r="6" fill="#64748b"/><text x="330" y="970" fill="#94a3b8">GND</text>
       <circle cx="368" cy="934" r="6" fill="#06b6d4"/><text x="368" y="970" fill="#22d3ee">D15</text>
@@ -279,14 +279,14 @@
       <circle cx="444" cy="934" r="6" fill="#06b6d4"/><text x="444" y="970" fill="#22d3ee">D4</text>
       <circle cx="482" cy="934" r="6" fill="#06b6d4"/><text x="482" y="970" fill="#22d3ee">RX2</text>
       <circle cx="520" cy="934" r="6" fill="#06b6d4"/><text x="520" y="970" fill="#22d3ee">TX2</text>
-      <circle cx="558" cy="934" r="6" fill="#22c55e"/><text x="558" y="970" fill="#4ade80">D5</text>
-      <circle cx="596" cy="934" r="6" fill="#22c55e"/><text x="596" y="970" fill="#4ade80">D18</text>
-      <circle cx="634" cy="934" r="6" fill="#22c55e"/><text x="634" y="970" fill="#4ade80">D19</text>
+      <circle cx="558" cy="934" r="6" fill="#22c55e"/><text x="558" y="970" fill="#4ade80">D5[R]</text>
+      <circle cx="596" cy="934" r="6" fill="#22c55e"/><text x="596" y="970" fill="#4ade80">D18[R]</text>
+      <circle cx="634" cy="934" r="6" fill="#22c55e"/><text x="634" y="970" fill="#4ade80">D19[R]</text>
       <circle cx="672" cy="934" r="6" fill="#334155"/><text x="672" y="970" fill="#64748b">D21</text>
       <circle cx="710" cy="934" r="6" fill="#334155"/><text x="710" y="970" fill="#64748b">D22</text>
       <circle cx="748" cy="934" r="6" fill="#334155"/><text x="748" y="970" fill="#64748b">TX0</text>
       <circle cx="786" cy="934" r="6" fill="#334155"/><text x="786" y="970" fill="#64748b">RX0</text>
-      <circle cx="824" cy="934" r="6" fill="#22c55e"/><text x="824" y="970" fill="#4ade80">D23</text>
+      <circle cx="824" cy="934" r="6" fill="#22c55e"/><text x="824" y="970" fill="#4ade80">D23[R]</text>
     </g>
   </g>
 
@@ -312,11 +312,11 @@
   <!-- Kolom C - D (216 s/d 254), Baris 28-29 (Y = 1270) -->
   <g id="J_HOUSE_1_2">
     <rect x="198" y="1252" width="74" height="64" rx="5" fill="#1e293b" stroke="#4ade80" stroke-width="2" filter="url(#shadow)"/>
-    <text x="235" y="1278" font-size="10.5" font-weight="bold" fill="#4ade80" text-anchor="middle">HOUSE1-2 [2P]</text>
-    <text x="235" y="1294" font-size="9" fill="#f8fafc" text-anchor="middle">1:D18 | 2:GND</text>
-    <text x="235" y="1307" font-size="8" fill="#94a3b8" text-anchor="middle">Kolom: C, D</text>
-    <circle cx="216" cy="1270" r="3.5" fill="#4ade80"/>
-    <circle cx="254" cy="1270" r="3.5" fill="#4ade80"/>
+    <text x="235" y="1276" font-size="10.5" font-weight="bold" fill="#4ade80" text-anchor="middle">HOUSE1-2 [2P]</text>
+    <text x="235" y="1292" font-size="8.3" fill="#f8fafc" text-anchor="middle">1:D18 [R] | 2:GND</text>
+    <text x="235" y="1307" font-size="7.5" fill="#a7f3d0" text-anchor="middle">R=47-51Ω (Kolom C, D)</text>
+    <circle cx="216" cy="1268" r="3.5" fill="#4ade80"/>
+    <circle cx="254" cy="1268" r="3.5" fill="#4ade80"/>
   </g>
 
   <!-- [SPACE 1 PIN: Kolom E (292) Kosong di Baris 28-29] -->
@@ -327,11 +327,11 @@
   <!-- Kolom F - G (330 s/d 368), Baris 28-29 -->
   <g id="J_HOUSE_3_4">
     <rect x="312" y="1252" width="74" height="64" rx="5" fill="#1e293b" stroke="#4ade80" stroke-width="2" filter="url(#shadow)"/>
-    <text x="349" y="1278" font-size="10.5" font-weight="bold" fill="#4ade80" text-anchor="middle">HOUSE3-4 [2P]</text>
-    <text x="349" y="1294" font-size="9" fill="#f8fafc" text-anchor="middle">1:D19 | 2:GND</text>
-    <text x="349" y="1307" font-size="8" fill="#94a3b8" text-anchor="middle">Kolom: F, G</text>
-    <circle cx="330" cy="1270" r="3.5" fill="#4ade80"/>
-    <circle cx="368" cy="1270" r="3.5" fill="#4ade80"/>
+    <text x="349" y="1276" font-size="10.5" font-weight="bold" fill="#4ade80" text-anchor="middle">HOUSE3-4 [2P]</text>
+    <text x="349" y="1292" font-size="8.3" fill="#f8fafc" text-anchor="middle">1:D19 [R] | 2:GND</text>
+    <text x="349" y="1307" font-size="7.5" fill="#a7f3d0" text-anchor="middle">R=47-51Ω (Kolom F, G)</text>
+    <circle cx="330" cy="1268" r="3.5" fill="#4ade80"/>
+    <circle cx="368" cy="1268" r="3.5" fill="#4ade80"/>
   </g>
 
   <!-- [SPACE 1 PIN: Kolom H (406) Kosong] -->
@@ -375,22 +375,23 @@
   <!-- Kolom R - U (786 s/d 900), Baris 28-29 -->
   <g id="J_TL">
     <rect x="768" y="1252" width="150" height="64" rx="5" fill="#1e293b" stroke="#4ade80" stroke-width="2" filter="url(#shadow)"/>
-    <text x="843" y="1278" font-size="11" font-weight="bold" fill="#4ade80" text-anchor="middle">J_TL VKS [4P]</text>
-    <text x="843" y="1294" font-size="8.3" fill="#f8fafc" text-anchor="middle">1:D23(R) | 2:D5(Y) | 3:D13(G) | 4:GND</text>
-    <text x="843" y="1307" font-size="8" fill="#94a3b8" text-anchor="middle">Kolom: R, S, T, U</text>
-    <circle cx="786" cy="1270" r="3.5" fill="#ef4444"/>
-    <circle cx="824" cy="1270" r="3.5" fill="#eab308"/>
-    <circle cx="862" cy="1270" r="3.5" fill="#22c55e"/>
-    <circle cx="900" cy="1270" r="3.5" fill="#64748b"/>
+    <text x="843" y="1275" font-size="11" font-weight="bold" fill="#4ade80" text-anchor="middle">J_TL VKS [4P]</text>
+    <text x="843" y="1291" font-size="7.6" fill="#f8fafc" text-anchor="middle">1:D23[R] | 2:D5[R] | 3:D13[R] | 4:GND</text>
+    <text x="843" y="1307" font-size="7.5" fill="#a7f3d0" text-anchor="middle">3x R=100Ω On-Board (Kolom R..U)</text>
+    <circle cx="786" cy="1268" r="3.5" fill="#ef4444"/>
+    <circle cx="824" cy="1268" r="3.5" fill="#eab308"/>
+    <circle cx="862" cy="1268" r="3.5" fill="#22c55e"/>
+    <circle cx="900" cy="1268" r="3.5" fill="#64748b"/>
   </g>
 
   <!-- ===================================================================== -->
   <!-- LEGENDA & CATATAN PERAKITAN                                           -->
   <!-- ===================================================================== -->
-  <g transform="translate(70, 1432)" font-size="11" fill="#cbd5e1">
-    <rect x="0" y="0" width="1040" height="52" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
-    <text x="15" y="22" font-weight="bold" fill="#38bdf8">ATURAN FISIK &amp; MEKANIK:</text>
-    <text x="175" y="22">1. <tspan fill="#f87171" font-weight="bold">4 Lubang Baut 2x2</tspan> di tiap sudut (A-B &amp; X-Y) kosong bebas komponen untuk standoff casing.</text>
-    <text x="175" y="38">2. <tspan fill="#facc15" font-weight="bold">Spasi 1 Lubang (2.54mm)</tspan> antar soket JST mencegah tabrakan bodi plastik saat kabel dicabut-pasang.</text>
+  <g transform="translate(70, 1426)" font-size="10.5" fill="#cbd5e1">
+    <rect x="0" y="0" width="1040" height="58" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <text x="15" y="19" font-weight="bold" fill="#38bdf8">ATURAN FISIK &amp; JALUR RESISTOR:</text>
+    <text x="195" y="19">1. <tspan fill="#f87171" font-weight="bold">4 Lubang Baut 2x2</tspan> di tiap sudut (A-B &amp; X-Y) kosong bebas komponen untuk standoff baut PCB.</text>
+    <text x="195" y="34">2. <tspan fill="#facc15" font-weight="bold">Spasi 1 Lubang (2.54mm)</tspan> antar soket JST mencegah tabrakan bodi plastik saat kabel dicabut-pasang.</text>
+    <text x="195" y="49">3. <tspan fill="#4ade80" font-weight="bold">[R] Resistor On-Board:</tspan> Semua jalur GPIO ke LED dipasang resistor di PCB sebelum soket (100Ω untuk 1 LED, 47-51Ω untuk 2 LED paralel).</text>
   </g>
 </svg>
