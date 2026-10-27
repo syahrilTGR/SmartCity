@@ -30,7 +30,7 @@ constexpr uint8_t PIN_HOUSE_1_2   = 18; // Output Lampu Rumah 1 & 2
 constexpr uint8_t PIN_HOUSE_3_4   = 19; // Output Lampu Rumah 3 & 4
 
 // Ambang Batas Default Siang/Malam (Dapat disesuaikan berdasarkan pencahayaan ruangan)
-constexpr int LDR_THRESHOLD = 2000;
+constexpr int LDR_THRESHOLD = 3650;
 
 // Logging periodik
 unsigned long lastPrintTime = 0;
