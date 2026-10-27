@@ -34,8 +34,8 @@ constexpr uint8_t PIN_LPJ_SERI   = 26; // 2 LED paralel fisik
 // Definisi Pin Sensing BNC Paralel
 constexpr uint8_t PIN_BNC_PAR_1  = 16;
 constexpr uint8_t PIN_BNC_PAR_2  = 17;
-constexpr uint8_t PIN_LPJ_PAR_1  = 32;
-constexpr uint8_t PIN_LPJ_PAR_2  = 33;
+constexpr uint8_t PIN_LPJ_PAR_1  = 33; // Disesuaikan jalur solder
+constexpr uint8_t PIN_LPJ_PAR_2  = 32; // Disesuaikan jalur solder
 
 // Variabel status sebelumnya untuk deteksi trigger
 int lastSeri1 = -1, lastSeri2 = -1;
