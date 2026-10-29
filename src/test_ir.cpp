@@ -1,6 +1,7 @@
 /**
  * =============================================================================
  * Program Pengujian Sensor IR Proximity 1 & 2 dan Lampu LPJ Jalur Atas 1 & 2
+ * + FITUR WIFI MANAGER & ARDUINO OTA (OVER-THE-AIR)
  * Proyek: Smart City Miniatur Diorama (ESP32 DevKit v1)
  * =============================================================================
  *
@@ -14,13 +15,17 @@
  * - Modul IR obstacle umumnya Active LOW:
  *   * Terdeteksi objek / mobil -> OUT = LOW (0)  -> Lampu ON (HIGH)
  *   * Tidak ada objek          -> OUT = HIGH (1) -> Lampu OFF (LOW)
- * - Masing-masing sensor mengontrol lampunya sendiri secara independen:
- *   * IR 1 (GPIO 34) mengendalikan LPJ Atas 1 (GPIO 14)
- *   * IR 2 (GPIO 35) mengendalikan LPJ Atas 2 (GPIO 27)
+ * - IR 1 (GPIO 34) mengendalikan LPJ Atas 1 (GPIO 14)
+ * - IR 2 (GPIO 35) mengendalikan LPJ Atas 2 (GPIO 27)
  * =============================================================================
  */
 
 #include <Arduino.h>
+#include <WiFi.h>
+#include <WiFiManager.h>
+#include <ESPmDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 
 // Definisi Pin Input Sensor IR
 constexpr uint8_t PIN_IR1 = 34;
@@ -44,15 +49,8 @@ void setup() {
     Serial.println();
     Serial.println("==================================================");
     Serial.println("   TESTING SENSOR IR 1 & IR 2 + LPJ ATAS 1 & 2   ");
+    Serial.println("        DILENGKAPI WIFIMANAGER & ARDUINO OTA      ");
     Serial.println("==================================================");
-    Serial.println("Pinout:");
-    Serial.println(" - IR 1           : GPIO 34 (Input)");
-    Serial.println(" - IR 2           : GPIO 35 (Input)");
-    Serial.println(" - LPJ Atas 1     : GPIO 14 (Output)");
-    Serial.println(" - LPJ Atas 2     : GPIO 27 (Output)");
-    Serial.println("--------------------------------------------------");
-    Serial.println("Mulai pengujian... Letakkan tangan/objek di depan IR!");
-    Serial.println();
 
     // Konfigurasi pin input (GPIO 34 & 35 adalah input-only pada ESP32)
     pinMode(PIN_IR1, INPUT);
@@ -65,9 +63,72 @@ void setup() {
     // Inisialisasi awal lampu MATI
     digitalWrite(PIN_LPJ_ATAS_1, LOW);
     digitalWrite(PIN_LPJ_ATAS_2, LOW);
+
+    // -------------------------------------------------------------------------
+    // INISIALISASI WIFIMANAGER & ARDUINO OTA
+    // -------------------------------------------------------------------------
+    WiFiManager wm;
+    wm.setConfigPortalTimeout(180);
+
+    Serial.println("[WIFI] Memulai koneksi via WiFiManager...");
+    bool isConnected = wm.autoConnect("SmartCity-IR-AP");
+
+    if (!isConnected) {
+        Serial.println("[WIFI] Timeout portal tercapai / Gagal konek. Mode Offline aktif!");
+    } else {
+        Serial.println("[WIFI] Berhasil terhubung ke Wi-Fi!");
+        Serial.print("[WIFI] Alamat IP: ");
+        Serial.println(WiFi.localIP());
+
+        ArduinoOTA.setHostname("smartcity-ir");
+
+        ArduinoOTA.onStart([]() {
+            String type = (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
+            Serial.println("\n[OTA] Memulai transfer firmware Over-The-Air: " + type);
+            digitalWrite(PIN_LPJ_ATAS_1, LOW);
+            digitalWrite(PIN_LPJ_ATAS_2, LOW);
+        });
+
+        ArduinoOTA.onEnd([]() {
+            Serial.println("\n[OTA] Update Berhasil! ESP32 me-restart...");
+        });
+
+        ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+            Serial.printf("[OTA] Progress Transfer: %u%%\r", (progress / (total / 100)));
+        });
+
+        ArduinoOTA.onError([](ota_error_t error) {
+            Serial.printf("[OTA] Error [%u]\n", error);
+        });
+
+        ArduinoOTA.begin();
+        Serial.println("[OTA] Service ArduinoOTA Siap!");
+        Serial.printf(">>> PERINTAH UPLOAD VIA WI-FI (OTA):\n");
+        Serial.printf("    pio run -e test_ir -t upload --upload-port %s\n", WiFi.localIP().toString().c_str());
+        Serial.println("--------------------------------------------------");
+    }
+
+    Serial.println("Mulai pengujian... Letakkan tangan/objek di depan IR!\n");
 }
 
 void loop() {
+    // 0. Handle OTA jika Wi-Fi terhubung
+    if (WiFi.status() == WL_CONNECTED) {
+        ArduinoOTA.handle();
+    }
+
+    // Reset Wi-Fi via Serial Monitor (Ketik 'r' lalu Enter)
+    if (Serial.available()) {
+        char c = Serial.read();
+        if (c == 'r' || c == 'R') {
+            Serial.println("\n[WIFI] Mereset kredensial Wi-Fi...");
+            WiFiManager wm;
+            wm.resetSettings();
+            delay(1000);
+            ESP.restart();
+        }
+    }
+
     // Baca status digital sensor (modul IR umumnya LOW saat terdeteksi halangan)
     int stateIR1 = digitalRead(PIN_IR1);
     int stateIR2 = digitalRead(PIN_IR2);
@@ -100,11 +161,12 @@ void loop() {
     // Status detak jantung periodik setiap 500ms
     if (millis() - lastPrintTime >= PRINT_INTERVAL_MS) {
         lastPrintTime = millis();
-        Serial.printf("[STATUS] IR1 (D34): %d | LPJ1 (D14): %s  ||  IR2 (D35): %d | LPJ2 (D27): %s\n",
+        Serial.printf("[STATUS] IR1 (D34):%d | LPJ1:%s || IR2 (D35):%d | LPJ2:%s | IP:%s\n",
                       stateIR1,
                       ir1Detected ? "ON " : "OFF",
                       stateIR2,
-                      ir2Detected ? "ON " : "OFF");
+                      ir2Detected ? "ON " : "OFF",
+                      (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString().c_str() : "OFFLINE");
     }
 
     delay(20); // Debounce sampling singkat

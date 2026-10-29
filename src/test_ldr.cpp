@@ -1,6 +1,7 @@
 /**
  * =============================================================================
  * PROGRAM PENGUJIAN: Sensor Cahaya LDR (Siang / Malam) & Lampu Rumah
+ * + FITUR WIFI MANAGER & ARDUINO OTA (OVER-THE-AIR)
  * Proyek: Smart City Miniatur Diorama (ESP32 DevKit v1)
  * =============================================================================
  *
@@ -9,20 +10,15 @@
  *                       Rangkaian pembagi tegangan: 3.3V - LDR - GPIO 36 - R 10k - GND
  * - Lampu Rumah 1 & 2 : GPIO 18 (Output, LED Rumah via Resistor 47-51 Ohm)
  * - Lampu Rumah 3 & 4 : GPIO 19 (Output, LED Rumah via Resistor 47-51 Ohm)
- *
- * Karakteristik Rangkaian Pembagi Tegangan:
- * - Kondisi Terang (Siang) : Hambatan LDR turun -> Tegangan GPIO 36 naik -> ADC TINGGI (~2500 - 4095)
- * - Kondisi Gelap (Malam)  : Hambatan LDR naik  -> Tegangan GPIO 36 turun -> ADC RENDAH (~0 - 1500)
- *
- * Logika Pengujian:
- * - Jika Gelap / Malam (ADC < THRESHOLD):
- *   -> Lampu Rumah 1-2 (GPIO 18) & Rumah 3-4 (GPIO 19) MENYALA (HIGH).
- * - Jika Terang / Siang (ADC >= THRESHOLD):
- *   -> Lampu Rumah PADAM (LOW).
  * =============================================================================
  */
 
 #include <Arduino.h>
+#include <WiFi.h>
+#include <WiFiManager.h>
+#include <ESPmDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 
 // Definisi Pin
 constexpr uint8_t PIN_LDR         = 36; // VP pin (Input-Only ADC1_CH0)
@@ -34,7 +30,7 @@ constexpr int LDR_THRESHOLD = 3650;
 
 // Logging periodik
 unsigned long lastPrintTime = 0;
-constexpr unsigned long PRINT_INTERVAL_MS = 300;
+constexpr unsigned long PRINT_INTERVAL_MS = 500;
 
 // Status terakhir kondisi
 bool lastIsNight = false;
@@ -58,21 +54,73 @@ void setup() {
 
     Serial.println("\n========================================================");
     Serial.println("   PENGUJIAN SENSOR LDR (SIANG / MALAM) & LAMPU RUMAH   ");
+    Serial.println("        DILENGKAPI WIFIMANAGER & ARDUINO OTA            ");
     Serial.println("========================================================");
-    Serial.println("Pinout:");
-    Serial.println(" - Sensor LDR      : GPIO 36 (VP - Analog ADC1)");
-    Serial.println(" - Lampu Rumah 1-2 : GPIO 18 (Output)");
-    Serial.println(" - Lampu Rumah 3-4 : GPIO 19 (Output)");
-    Serial.printf ("Threshold Malam   : ADC < %d\n", LDR_THRESHOLD);
-    Serial.println("--------------------------------------------------------");
-    Serial.println("Petunjuk:");
-    Serial.println("1. Tutup sensor LDR dengan jari/kertas (Simulasi Malam):");
-    Serial.println("   -> Nilai ADC turun, Lampu Rumah 1-4 akan MENYALA.");
-    Serial.println("2. Lepas penutup atau sinari LDR (Simulasi Siang):");
-    Serial.println("   -> Nilai ADC naik, Lampu Rumah 1-4 akan PADAM.\n");
+
+    // -------------------------------------------------------------------------
+    // INISIALISASI WIFIMANAGER & ARDUINO OTA
+    // -------------------------------------------------------------------------
+    WiFiManager wm;
+    wm.setConfigPortalTimeout(180);
+
+    Serial.println("[WIFI] Memulai koneksi via WiFiManager...");
+    bool isConnected = wm.autoConnect("SmartCity-LDR-AP");
+
+    if (!isConnected) {
+        Serial.println("[WIFI] Timeout portal tercapai / Gagal konek. Mode Offline aktif!");
+    } else {
+        Serial.println("[WIFI] Berhasil terhubung ke Wi-Fi!");
+        Serial.print("[WIFI] Alamat IP: ");
+        Serial.println(WiFi.localIP());
+
+        ArduinoOTA.setHostname("smartcity-ldr");
+
+        ArduinoOTA.onStart([]() {
+            String type = (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
+            Serial.println("\n[OTA] Memulai transfer firmware Over-The-Air: " + type);
+            setHouseLights(false);
+        });
+
+        ArduinoOTA.onEnd([]() {
+            Serial.println("\n[OTA] Update Berhasil! ESP32 me-restart...");
+        });
+
+        ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+            Serial.printf("[OTA] Progress Transfer: %u%%\r", (progress / (total / 100)));
+        });
+
+        ArduinoOTA.onError([](ota_error_t error) {
+            Serial.printf("[OTA] Error [%u]\n", error);
+        });
+
+        ArduinoOTA.begin();
+        Serial.println("[OTA] Service ArduinoOTA Siap!");
+        Serial.printf(">>> PERINTAH UPLOAD VIA WI-FI (OTA):\n");
+        Serial.printf("    pio run -e test_ldr -t upload --upload-port %s\n", WiFi.localIP().toString().c_str());
+        Serial.println("--------------------------------------------------------");
+    }
+
+    Serial.println("Mulai pengujian sensor LDR...\n");
 }
 
 void loop() {
+    // 0. Handle OTA jika Wi-Fi terhubung
+    if (WiFi.status() == WL_CONNECTED) {
+        ArduinoOTA.handle();
+    }
+
+    // Reset Wi-Fi via Serial Monitor (Ketik 'r' lalu Enter)
+    if (Serial.available()) {
+        char c = Serial.read();
+        if (c == 'r' || c == 'R') {
+            Serial.println("\n[WIFI] Mereset kredensial Wi-Fi...");
+            WiFiManager wm;
+            wm.resetSettings();
+            delay(1000);
+            ESP.restart();
+        }
+    }
+
     unsigned long now = millis();
 
     // Baca nilai ADC mentah (rentang 12-bit: 0 s/d 4095)
@@ -111,12 +159,13 @@ void loop() {
         }
         bar[20] = '\0';
 
-        Serial.printf("[LDR] ADC: %4d | Volt: %4.2fV | Bar: [%s] | Suasana: %-6s | Lampu Rumah: %s\n",
+        Serial.printf("[LDR] ADC:%4d | Volt:%4.2fV | Bar:[%s] | Suasana:%-5s | Rumah:%-3s | IP:%s\n",
                       rawADC,
                       voltage,
                       bar,
                       isNight ? "MALAM" : "SIANG",
-                      isNight ? "ON (MENYALA)" : "OFF");
+                      isNight ? "ON " : "OFF",
+                      (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString().c_str() : "OFFLINE");
     }
 
     delay(20);

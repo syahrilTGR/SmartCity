@@ -1,6 +1,7 @@
 /**
  * =============================================================================
  * PROGRAM PENGUJIAN: Saklar Toggle Sensor (Master Enable Otomasi)
+ * + FITUR WIFI MANAGER & ARDUINO OTA (OVER-THE-AIR)
  * Proyek: Smart City Miniatur Diorama (ESP32 DevKit v1)
  * =============================================================================
  *
@@ -19,6 +20,11 @@
  */
 
 #include <Arduino.h>
+#include <WiFi.h>
+#include <WiFiManager.h>
+#include <ESPmDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 
 // Definisi Pin
 constexpr uint8_t PIN_SW_SENS   = 15; // Saklar Toggle SPST (Input Pull-up)
@@ -27,14 +33,13 @@ constexpr uint8_t PIN_INDICATOR = 18; // Indikator visual ke Lampu Rumah 1-2
 // Variabel status
 int lastSwitchState = -1;
 unsigned long lastPrintTime = 0;
-constexpr unsigned long PRINT_INTERVAL_MS = 400;
+constexpr unsigned long PRINT_INTERVAL_MS = 500;
 
 void setup() {
     Serial.begin(115200);
     delay(1000);
 
     // Konfigurasi Pin
-    // Menggunakan resistor internal pull-up ESP32 (~45 kOhm)
     pinMode(PIN_SW_SENS, INPUT_PULLUP);
     pinMode(PIN_INDICATOR, OUTPUT);
 
@@ -42,21 +47,73 @@ void setup() {
 
     Serial.println("\n========================================================");
     Serial.println("   PENGUJIAN SAKLAR TOGGLE SENSOR (MASTER ENABLE)       ");
+    Serial.println("        DILENGKAPI WIFIMANAGER & ARDUINO OTA            ");
     Serial.println("========================================================");
-    Serial.println("Pinout:");
-    Serial.println(" - Saklar Toggle  : GPIO 15 (INPUT_PULLUP)");
-    Serial.println(" - Indikator LED  : GPIO 18 (Lampu Rumah 1-2)");
-    Serial.println("--------------------------------------------------------");
-    Serial.println("Petunjuk:");
-    Serial.println("1. Geser saklar ke posisi ON (terhubung ke GND):");
-    Serial.println("   -> GPIO 15 terbaca: 0 (LOW)");
-    Serial.println("   -> Status: AKTIF (ENABLE), LED Rumah 1-2 MENYALA.");
-    Serial.println("2. Geser saklar ke posisi OFF (terbuka):");
-    Serial.println("   -> GPIO 15 terbaca: 1 (HIGH)");
-    Serial.println("   -> Status: MATI (DISABLE), LED Rumah 1-2 PADAM.\n");
+
+    // -------------------------------------------------------------------------
+    // INISIALISASI WIFIMANAGER & ARDUINO OTA
+    // -------------------------------------------------------------------------
+    WiFiManager wm;
+    wm.setConfigPortalTimeout(180);
+
+    Serial.println("[WIFI] Memulai koneksi via WiFiManager...");
+    bool isConnected = wm.autoConnect("SmartCity-Switch-AP");
+
+    if (!isConnected) {
+        Serial.println("[WIFI] Timeout portal tercapai / Gagal konek. Mode Offline aktif!");
+    } else {
+        Serial.println("[WIFI] Berhasil terhubung ke Wi-Fi!");
+        Serial.print("[WIFI] Alamat IP: ");
+        Serial.println(WiFi.localIP());
+
+        ArduinoOTA.setHostname("smartcity-toggle");
+
+        ArduinoOTA.onStart([]() {
+            String type = (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
+            Serial.println("\n[OTA] Memulai transfer firmware Over-The-Air: " + type);
+            digitalWrite(PIN_INDICATOR, LOW);
+        });
+
+        ArduinoOTA.onEnd([]() {
+            Serial.println("\n[OTA] Update Berhasil! ESP32 me-restart...");
+        });
+
+        ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+            Serial.printf("[OTA] Progress Transfer: %u%%\r", (progress / (total / 100)));
+        });
+
+        ArduinoOTA.onError([](ota_error_t error) {
+            Serial.printf("[OTA] Error [%u]\n", error);
+        });
+
+        ArduinoOTA.begin();
+        Serial.println("[OTA] Service ArduinoOTA Siap!");
+        Serial.printf(">>> PERINTAH UPLOAD VIA WI-FI (OTA):\n");
+        Serial.printf("    pio run -e test_toggle -t upload --upload-port %s\n", WiFi.localIP().toString().c_str());
+        Serial.println("--------------------------------------------------------");
+    }
+
+    Serial.println("Mulai pengujian saklar toggle...\n");
 }
 
 void loop() {
+    // 0. Handle OTA jika Wi-Fi terhubung
+    if (WiFi.status() == WL_CONNECTED) {
+        ArduinoOTA.handle();
+    }
+
+    // Reset Wi-Fi via Serial Monitor (Ketik 'r' lalu Enter)
+    if (Serial.available()) {
+        char c = Serial.read();
+        if (c == 'r' || c == 'R') {
+            Serial.println("\n[WIFI] Mereset kredensial Wi-Fi...");
+            WiFiManager wm;
+            wm.resetSettings();
+            delay(1000);
+            ESP.restart();
+        }
+    }
+
     unsigned long now = millis();
 
     // Baca status saklar (LOW = ON / Tertutup ke GND)
@@ -83,11 +140,12 @@ void loop() {
     // Monitoring Serial periodik
     if (now - lastPrintTime >= PRINT_INTERVAL_MS) {
         lastPrintTime = now;
-        Serial.printf("[SWITCH D15] Nilai: %d (%-4s) | Status: %-15s | Indikator D18: %s\n",
+        Serial.printf("[SWITCH D15] Nilai:%d (%-4s) | Status:%-10s | Indikator:%-3s | IP:%s\n",
                       switchState,
                       (switchState == LOW) ? "LOW" : "HIGH",
-                      isEnabled ? "AKTIF (ON)" : "NON-AKTIF (OFF)",
-                      isEnabled ? "ON " : "OFF");
+                      isEnabled ? "AKTIF" : "NON-AKTIF",
+                      isEnabled ? "ON " : "OFF",
+                      (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString().c_str() : "OFFLINE");
     }
 
     delay(20); // Debounce sampling saklar mekanik
