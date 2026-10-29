@@ -30,6 +30,11 @@
  */
 
 #include <Arduino.h>
+#include <WiFi.h>
+#include <WiFiManager.h>
+#include <ESPmDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 
 // =============================================================================
 // DEFINISI PINOUT (Sesuai docs/pinout.md & docs/pcb_wiring.md)
@@ -231,7 +236,60 @@ void setup() {
     setTrafficLight(false, false, false);
     tlStateStartTime = millis();
 
-    Serial.println("Inisialisasi selesai. Seluruh filter debounce & histeresis aktif!");
+    Serial.println("Inisialisasi I/O selesai. Seluruh filter debounce & histeresis aktif!");
+
+    // 4. Inisialisasi WiFiManager & ArduinoOTA
+    WiFiManager wm;
+    wm.setConfigPortalTimeout(180); // 3 menit timeout portal konfigurasi
+    Serial.println("\n[WIFI] Memulai koneksi via WiFiManager...");
+    Serial.println("[WIFI] Jika belum terhubung, sambungkan HP ke Wi-Fi: 'SmartCity-AP'");
+    bool isConnected = wm.autoConnect("SmartCity-AP");
+
+    if (!isConnected) {
+        Serial.println("[WIFI] Timeout portal tercapai / Gagal konek. Melanjutkan diorama mode offline!");
+    } else {
+        Serial.println("[WIFI] Terhubung ke jaringan Wi-Fi!");
+        Serial.print("[WIFI] Alamat IP ESP32: ");
+        Serial.println(WiFi.localIP());
+
+        ArduinoOTA.setHostname("smartcity-esp32");
+
+        ArduinoOTA.onStart([]() {
+            String type = (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
+            Serial.println("\n[OTA] Memulai transfer firmware Over-The-Air: " + type);
+            // Matikan semua output lampu saat proses flash agar aman
+            digitalWrite(PIN_LPJ_ATAS_1, LOW);
+            digitalWrite(PIN_LPJ_ATAS_2, LOW);
+            digitalWrite(PIN_LPJ_SERI,   LOW);
+            digitalWrite(PIN_LPJ_PAR_1,  LOW);
+            digitalWrite(PIN_LPJ_PAR_2,  LOW);
+            digitalWrite(PIN_HOUSE_1_2,  LOW);
+            digitalWrite(PIN_HOUSE_3_4,  LOW);
+            setTrafficLight(false, false, false);
+        });
+
+        ArduinoOTA.onEnd([]() {
+            Serial.println("\n[OTA] Update Berhasil! ESP32 me-restart...");
+        });
+
+        ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+            Serial.printf("[OTA] Progress Transfer: %u%%\r", (progress / (total / 100)));
+        });
+
+        ArduinoOTA.onError([](ota_error_t error) {
+            Serial.printf("[OTA] Error [%u]: ", error);
+            if (error == OTA_AUTH_ERROR)         Serial.println("Otorisasi Gagal");
+            else if (error == OTA_BEGIN_ERROR)   Serial.println("Inisialisasi Gagal");
+            else if (error == OTA_CONNECT_ERROR) Serial.println("Koneksi Gagal");
+            else if (error == OTA_RECEIVE_ERROR) Serial.println("Penerimaan Gagal");
+            else if (error == OTA_END_ERROR)     Serial.println("Finalisasi Gagal");
+        });
+
+        ArduinoOTA.begin();
+        Serial.println("[OTA] Service ArduinoOTA Aktif!");
+        Serial.printf(">>> PERINTAH UPLOAD VIA WI-FI (OTA):\n");
+        Serial.printf("    pio run -e esp32dev -t upload --upload-port %s\n", WiFi.localIP().toString().c_str());
+    }
     Serial.println("----------------------------------------------------------------");
 }
 
@@ -390,7 +448,7 @@ void printTelemetry(unsigned long now, int rawLdr, int rawSolar) {
             else if (tlState == TL_GREEN)  tlStr = "HIJAU ";
         }
 
-        Serial.printf("[CUACA] LDR:%4d (%-5s) | SOLAR:%4d (%-5s) | SW_SENS: %-3s || LPJ ATAS: [%d, %d] | LPJ BWH: [%s | P1:%d, P2:%d] | RUMAH: %-3s | TL: %s\n",
+        Serial.printf("[CUACA] LDR:%4d (%-5s) | SOLAR:%4d (%-5s) | SW_SENS: %-3s || LPJ ATAS: [%d, %d] | LPJ BWH: [%s | P1:%d, P2:%d] | RUMAH: %-3s | TL: %-6s | IP: %s\n",
                       rawLdr,
                       isNight ? "MALAM" : "SIANG",
                       rawSolar,
@@ -402,7 +460,8 @@ void printTelemetry(unsigned long now, int rawLdr, int rawSolar) {
                       digitalRead(PIN_LPJ_PAR_1) == HIGH ? 1 : 0,
                       digitalRead(PIN_LPJ_PAR_2) == HIGH ? 1 : 0,
                       digitalRead(PIN_HOUSE_1_2) == HIGH ? "ON " : "OFF",
-                      tlStr);
+                      tlStr,
+                      (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString().c_str() : "OFFLINE");
     }
 }
 
@@ -412,6 +471,23 @@ void printTelemetry(unsigned long now, int rawLdr, int rawSolar) {
 
 void loop() {
     unsigned long now = millis();
+
+    // 0. Handle OTA jika Wi-Fi terhubung (Non-Blocking)
+    if (WiFi.status() == WL_CONNECTED) {
+        ArduinoOTA.handle();
+    }
+
+    // Reset Wi-Fi via Serial Monitor (Ketik huruf 'r' lalu Enter untuk ganti router)
+    if (Serial.available()) {
+        char c = Serial.read();
+        if (c == 'r' || c == 'R') {
+            Serial.println("\n[WIFI] Menghapus kredensial Wi-Fi tersimpan dan merestart ke mode Portal AP...");
+            WiFiManager wm;
+            wm.resetSettings();
+            delay(1000);
+            ESP.restart();
+        }
+    }
 
     // 1. Sampling & Filter Histeresis Sensor Analog
     int rawLdr   = analogRead(PIN_LDR);
