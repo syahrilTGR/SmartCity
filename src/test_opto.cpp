@@ -1,8 +1,14 @@
 #include <Arduino.h>
+#include <WiFi.h>
+#include <WiFiManager.h>
+#include <ESPmDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 
 /**
  * ============================================================================
  * PROGRAM PENGUJIAN: Rangkaian Optocoupler PC817 & Traffic Light Bergantian
+ *                    + FITUR WIFI MANAGER & ARDUINO OTA (OVER-THE-AIR)
  * Proyek: Smart City Miniatur Diorama (ESP32 DevKit v1)
  * ============================================================================
  * 
@@ -16,11 +22,22 @@
  * - GPIO 13 : LED Hijau   (G)
  * 
  * Skenario Pengujian:
- * - Sinar Surya Aktif (ADC < 2500):
- *   -> Modul Traffic Light berjalan otomatis bergantian:
- *      MERAH (2 detik) -> KUNING (1 detik) -> HIJAU (2 detik) -> loop...
- * - Gelap / Tanpa Sinar (ADC >= 2500):
- *   -> Siklus dihentikan, semua lampu padam (atau siaga standby).
+ * 1. WiFiManager:
+ *    - Saat pertama kali nyala / Wi-Fi tidak ditemukan, ESP32 membuat Access Point:
+ *      SSID: 'SmartCity-Opto-AP' (Tanpa Password).
+ *    - Hubungkan HP/Laptop ke Wi-Fi tersebut, buka captive portal pop-up, dan
+ *      pilih Wi-Fi serta masukkan password.
+ * 
+ * 2. ArduinoOTA:
+ *    - Setelah terhubung ke Wi-Fi, upload firmware berikutnya bisa lewat jaringan:
+ *      pio run -e test_opto -t upload --upload-port <IP_ADDRESS>
+ * 
+ * 3. Traffic Light:
+ *    - Sinar Surya Aktif (ADC < 2500): Siklus Merah -> Kuning -> Hijau.
+ *    - Gelap / Tanpa Sinar (ADC >= 2500): Siklus dihentikan (Lampu Padam).
+ * 
+ * 4. Perintah Serial Tambahan:
+ *    - Ketik huruf 'r' di Serial Monitor untuk mereset kredensial Wi-Fi (ganti router).
  * ============================================================================
  */
 
@@ -51,7 +68,7 @@ constexpr unsigned long DURATION_GREEN  = 2000;
 
 // Logging periodik
 unsigned long lastPrintTime = 0;
-constexpr unsigned long PRINT_INTERVAL_MS = 400;
+constexpr unsigned long PRINT_INTERVAL_MS = 500;
 
 void setTrafficLight(bool r, bool y, bool g) {
     digitalWrite(PIN_TL_RED,    r ? HIGH : LOW);
@@ -74,20 +91,93 @@ void setup() {
 
     Serial.println("\n========================================================");
     Serial.println("   PENGUJIAN OPTOCOUPLER PC817 + SIKLUS TRAFFIC LIGHT   ");
+    Serial.println("        DILENGKAPI WIFIMANAGER & ARDUINO OTA            ");
     Serial.println("========================================================");
-    Serial.println("Pinout:");
-    Serial.println(" - Sensor Opto Solar : GPIO 39 (VN - Analog ADC)");
-    Serial.println(" - TL Merah          : GPIO 23");
-    Serial.println(" - TL Kuning         : GPIO 5");
-    Serial.println(" - TL Hijau          : GPIO 13");
-    Serial.println("Threshold Solar      : ADC < 2500 (Sinar Terdeteksi)");
-    Serial.println("Siklus Lampu         : MERAH (2s) -> KUNING (1s) -> HIJAU (2s)");
-    Serial.println("--------------------------------------------------------");
-    Serial.println("Arahkan senter HP ke panel surya untuk mengaktifkan TL!\n");
+
+    // -------------------------------------------------------------------------
+    // INISIALISASI WIFIMANAGER
+    // -------------------------------------------------------------------------
+    WiFiManager wm;
+
+    // Timeout portal AP selama 180 detik (3 menit). Jika tidak ada koneksi baru,
+    // ESP32 akan tetap lanjut menjalankan sistem secara offline.
+    wm.setConfigPortalTimeout(180);
+
+    Serial.println("[WIFI] Memulai koneksi via WiFiManager...");
+    Serial.println("[WIFI] Jika belum terhubung ke router, hubungkan HP ke Wi-Fi:");
+    Serial.println("[WIFI] -> SSID: 'SmartCity-Opto-AP' (Tanpa Password)");
+    Serial.println("[WIFI] -> Buka browser/portal pop-up untuk setting Wi-Fi.");
+
+    bool isConnected = wm.autoConnect("SmartCity-Opto-AP");
+
+    if (!isConnected) {
+        Serial.println("[WIFI] Timeout portal tercapai / Gagal konek. Mode Offline aktif!");
+    } else {
+        Serial.println("[WIFI] Berhasil terhubung ke Wi-Fi!");
+        Serial.print("[WIFI] Alamat IP: ");
+        Serial.println(WiFi.localIP());
+
+        // ---------------------------------------------------------------------
+        // INISIALISASI ARDUINO OTA (OVER-THE-AIR)
+        // ---------------------------------------------------------------------
+        ArduinoOTA.setHostname("smartcity-opto");
+
+        ArduinoOTA.onStart([]() {
+            String type = (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
+            Serial.println("\n[OTA] Memulai transfer firmware Over-The-Air: " + type);
+            // Padamkan lampu saat proses flash agar aman dari lonjakan arus
+            setTrafficLight(false, false, false);
+        });
+
+        ArduinoOTA.onEnd([]() {
+            Serial.println("\n[OTA] Transfer Selesai! Me-restart ESP32...");
+        });
+
+        ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+            Serial.printf("[OTA] Progress Transfer: %u%%\r", (progress / (total / 100)));
+        });
+
+        ArduinoOTA.onError([](ota_error_t error) {
+            Serial.printf("[OTA] Error [%u]: ", error);
+            if (error == OTA_AUTH_ERROR)         Serial.println("Otorisasi Gagal");
+            else if (error == OTA_BEGIN_ERROR)   Serial.println("Inisialisasi Gagal");
+            else if (error == OTA_CONNECT_ERROR) Serial.println("Koneksi Gagal");
+            else if (error == OTA_RECEIVE_ERROR) Serial.println("Penerimaan Gagal");
+            else if (error == OTA_END_ERROR)     Serial.println("Finalisasi Gagal");
+        });
+
+        ArduinoOTA.begin();
+        Serial.println("[OTA] Service ArduinoOTA Siap!");
+        Serial.println("--------------------------------------------------------");
+        Serial.printf(">>> PERINTAH UPLOAD VIA WI-FI (OTA):\n");
+        Serial.printf("    pio run -e test_opto -t upload --upload-port %s\n", WiFi.localIP().toString().c_str());
+        Serial.println("--------------------------------------------------------");
+    }
+
+    Serial.println("Sistem siap. Arahkan senter HP ke panel surya untuk mengaktifkan TL!\n");
 }
 
 void loop() {
     unsigned long now = millis();
+
+    // 1. Handle ArduinoOTA jika terhubung ke Wi-Fi (Non-blocking)
+    if (WiFi.status() == WL_CONNECTED) {
+        ArduinoOTA.handle();
+    }
+
+    // 2. Fitur Reset Wi-Fi via Serial Monitor (Ketik huruf 'r' lalu Enter)
+    if (Serial.available()) {
+        char c = Serial.read();
+        if (c == 'r' || c == 'R') {
+            Serial.println("\n[WIFI] Menghapus kredensial Wi-Fi dan merestart ke mode AP Portal...");
+            WiFiManager wm;
+            wm.resetSettings();
+            delay(1000);
+            ESP.restart();
+        }
+    }
+
+    // 3. Logika Pembacaan Optocoupler Panel Surya
     int rawAnalog = analogRead(PIN_OPTO_SOLAR); // Nilai 0 - 4095
     bool isSolarActive = (rawAnalog < ADC_THRESHOLD_SOLAR);
 
@@ -142,7 +232,7 @@ void loop() {
         }
     }
 
-    // Monitoring Serial periodik
+    // 4. Monitoring Serial periodik
     if (now - lastPrintTime >= PRINT_INTERVAL_MS) {
         lastPrintTime = now;
         const char* stateStr = "OFF";
@@ -150,11 +240,12 @@ void loop() {
         else if (currentState == TL_YELLOW) stateStr = "KUNING (ON)";
         else if (currentState == TL_GREEN) stateStr = "HIJAU (ON)";
 
-        Serial.printf("[SOLAR] ADC: %4d | Status: %-12s | Traffic Light: %s\n",
+        Serial.printf("[SOLAR] ADC:%4d | Status:%-12s | TL:%-11s | IP:%s\n",
                       rawAnalog,
-                      isSolarActive ? "TERANG (<2500)" : "GELAP (>=2500)",
-                      stateStr);
+                      isSolarActive ? "TERANG" : "GELAP",
+                      stateStr,
+                      (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString().c_str() : "OFFLINE/AP");
     }
 
-    delay(20); // Debounce sampling
+    delay(10); // Loop interval ringan untuk kestabilan RTOS
 }
