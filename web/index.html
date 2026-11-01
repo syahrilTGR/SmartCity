@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart City ESP32 - Live Monitoring Dashboard</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#090d16',
+                        cardBg: '#131b2e',
+                        cardBorder: '#1e293b',
+                        accentBlue: '#38bdf8',
+                        accentGreen: '#10b981',
+                        accentYellow: '#f59e0b',
+                        accentRed: '#ef4444',
+                    },
+                    boxShadow: {
+                        'glow-green': '0 0 18px rgba(16, 185, 129, 0.55)',
+                        'glow-yellow': '0 0 18px rgba(245, 158, 11, 0.65)',
+                        'glow-red': '0 0 18px rgba(239, 68, 68, 0.65)',
+                        'glow-blue': '0 0 18px rgba(56, 189, 248, 0.55)',
+                        'glow-white': '0 0 18px rgba(255, 255, 255, 0.7)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- MQTT.js CDN -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090d16;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+        .pulse-fast {
+            animation: pulse 0.9s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .25; }
+        }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen font-sans flex flex-col antialiased selection:bg-accentBlue selection:text-black">
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="border-b border-cardBorder bg-cardBg/90 backdrop-blur sticky top-0 z-40 px-4 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+        <div class="flex items-center gap-3">
+            <div class="p-2.5 bg-gradient-to-tr from-cyan-600 to-blue-500 rounded-xl shadow-glow-blue flex items-center justify-center">
+                <i data-lucide="building-2" class="w-6 h-6 text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight flex items-center gap-2">
+                    SMART CITY ESP32
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-cyan-400 border border-cyan-500/30">
+                        Live Telemetry
+                    </span>
+                </h1>
+                <p class="text-xs text-slate-400">Miniatur Diorama Terpadu & Simulator Kelistrikan</p>
+            </div>
+        </div>
+
+        <!-- System Badges & Control -->
+        <div class="flex items-center flex-wrap gap-2.5 text-xs">
+            <!-- Web MQTT Status -->
+            <div id="badge-mqtt-status" class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/80">
+                <span id="dot-mqtt" class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                <span class="font-medium text-slate-300">Broker:</span>
+                <span id="text-mqtt" class="font-semibold text-amber-400">Menghubungkan...</span>
+            </div>
+
+            <!-- ESP32 Hardware Status -->
+            <div id="badge-device-status" class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/80">
+                <span id="dot-device" class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                <span class="font-medium text-slate-300">ESP32:</span>
+                <span id="text-device" class="font-semibold text-slate-400">Menunggu Data...</span>
+            </div>
+
+            <!-- Settings / Broker Config Modal Button -->
+            <button onclick="toggleConfigModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1.5 text-slate-200 transition font-medium">
+                <i data-lucide="settings" class="w-4 h-4 text-cyan-400"></i>
+                <span>Pengaturan</span>
+            </button>
+
+            <!-- Test Simulator Switch -->
+            <button id="btn-simulator" onclick="toggleSimulator()" class="px-3 py-1.5 bg-purple-900/40 hover:bg-purple-900/60 border border-purple-500/40 rounded-lg flex items-center gap-1.5 text-purple-300 transition font-medium">
+                <i data-lucide="play-circle" class="w-4 h-4 text-purple-400"></i>
+                <span id="text-simulator">Demo Simulator: OFF</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN DASHBOARD CONTENT -->
+    <main class="flex-1 p-4 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+
+        <!-- ROW 1: KONDISI LINGKUNGAN, MASTER SAKLAR, & TRAFFIC LIGHT -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <!-- Card 1: Waktu & Cahaya (Sensor LDR & Saklar Master) -->
+            <div class="bg-cardBg border border-cardBorder rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <i data-lucide="sun-medium" class="w-4 h-4 text-amber-400"></i>
+                            Sistem Lingkungan & LDR
+                        </span>
+                        <span id="tag-daynight" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                            Memuat...
+                        </span>
+                    </div>
+
+                    <div class="flex items-center gap-4 my-2">
+                        <div id="icon-container-daynight" class="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center transition-all duration-300">
+                            <i id="icon-daynight" data-lucide="sun" class="w-9 h-9 text-amber-400"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-400">Kondisi Kota</div>
+                            <div id="val-daynight" class="text-2xl font-bold tracking-tight text-white">-</div>
+                            <div class="text-xs text-slate-400 mt-0.5">LDR GPIO 36 (DO): <span id="val-ldr-do" class="font-mono text-cyan-300">-</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between">
+                    <span class="text-xs text-slate-400 flex items-center gap-1.5">
+                        <i data-lucide="toggle-left" class="w-4 h-4 text-cyan-400"></i>
+                        Saklar Master Otomasi (SW SENS)
+                    </span>
+                    <span id="val-sw-sens" class="px-2.5 py-1 rounded-md text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                        OFF
+                    </span>
+                </div>
+            </div>
+
+            <!-- Card 2: Panel Surya Mini & Optocoupler PC817 -->
+            <div class="bg-cardBg border border-cardBorder rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <i data-lucide="zap" class="w-4 h-4 text-yellow-400"></i>
+                            Daya Panel Surya (Opto PC817)
+                        </span>
+                        <span id="tag-solar" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+                            Standby
+                        </span>
+                    </div>
+
+                    <div class="my-2">
+                        <div class="flex justify-between items-baseline mb-1">
+                            <span class="text-xs text-slate-400">Intensitas Sensor Surya (GPIO 39)</span>
+                            <span id="val-solar-adc" class="font-mono text-lg font-bold text-cyan-300">0 / 4095</span>
+                        </div>
+                        <!-- Progress Bar Intensitas ADC (Inverted karena opto saturasi saat terang) -->
+                        <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                            <div id="bar-solar" class="h-full bg-gradient-to-r from-amber-500 to-yellow-300 transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                            <span>Padam (>2600)</span>
+                            <span>Ambang Batas (Histeresis)</span>
+                            <span>Terang (&lt;2400)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                    <span class="text-slate-400">Mode Kerja Lalu Lintas</span>
+                    <span id="val-tl-mode" class="font-semibold text-slate-300">Siklus Normal</span>
+                </div>
+            </div>
+
+            <!-- Card 3: Traffic Light VKS 5V (Visual Fixture) -->
+            <div class="bg-cardBg border border-cardBorder rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <i data-lucide="traffic-cone" class="w-4 h-4 text-red-400"></i>
+                        Traffic Light VKS (Live)
+                    </span>
+                    <span id="val-tl-timer" class="font-mono text-xs text-slate-400">GPIO 23, 5, 13</span>
+                </div>
+
+                <!-- Traffic Light Visual Pole -->
+                <div class="flex items-center justify-center gap-6 my-2">
+                    <!-- Housing Lampu Hitam -->
+                    <div class="bg-black/80 p-3.5 rounded-2xl border-2 border-slate-700 flex flex-col gap-3 shadow-inner">
+                        <!-- Merah (GPIO 23) -->
+                        <div id="lamp-red" class="w-9 h-9 rounded-full bg-red-950 border border-red-900 transition-all duration-200"></div>
+                        <!-- Kuning (GPIO 5) -->
+                        <div id="lamp-yellow" class="w-9 h-9 rounded-full bg-yellow-950 border border-yellow-900 transition-all duration-200"></div>
+                        <!-- Hijau (GPIO 13) -->
+                        <div id="lamp-green" class="w-9 h-9 rounded-full bg-green-950 border border-green-900 transition-all duration-200"></div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="text-xs text-slate-400">Status Sinyal Saat Ini:</div>
+                        <div id="val-tl-state-name" class="text-xl font-bold text-white tracking-wide">
+                            STANDBY
+                        </div>
+                        <p id="val-tl-desc" class="text-xs text-slate-400 leading-relaxed">
+                            Mengikuti pencahayaan panel surya.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-2 pt-3 border-t border-slate-800/80 text-[11px] text-slate-500 text-center">
+                    Malam: Siaga Kuning Kedip | Siang: Merah (4s) → Kuning (1.5s) → Hijau (4s)
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ROW 2: PENERANGAN RUMAH & LPJ JALUR ATAS (SMART HIGHWAY) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- Card 4: Penerangan Pemukiman (4 Rumah Miniatur) -->
+            <div class="bg-cardBg border border-cardBorder rounded-2xl p-5 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <i data-lucide="home" class="w-4 h-4 text-emerald-400"></i>
+                        Penerangan Pemukiman (4 Rumah)
+                    </span>
+                    <span class="text-xs text-slate-400">Aktif Otomatis Saat Malam</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Blok Rumah 1 & 2 (GPIO 18) -->
+                    <div id="box-house-1" class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex items-center gap-3.5 transition-all duration-300">
+                        <div id="icon-house-1" class="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center transition-all">
+                            <i data-lucide="home" class="w-6 h-6 text-slate-500"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-slate-300">Rumah 1 & 2</div>
+                            <div class="text-[11px] text-slate-500 font-mono">Pin GPIO 18</div>
+                            <div id="status-house-1" class="text-xs font-semibold text-slate-500 mt-1">PADAM</div>
+                        </div>
+                    </div>
+
+                    <!-- Blok Rumah 3 & 4 (GPIO 19) -->
+                    <div id="box-house-2" class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex items-center gap-3.5 transition-all duration-300">
+                        <div id="icon-house-2" class="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center transition-all">
+                            <i data-lucide="home" class="w-6 h-6 text-slate-500"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-slate-300">Rumah 3 & 4</div>
+                            <div class="text-[11px] text-slate-500 font-mono">Pin GPIO 19</div>
+                            <div id="status-house-2" class="text-xs font-semibold text-slate-500 mt-1">PADAM</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-xs text-slate-400 bg-slate-900/50 p-3 rounded-lg border border-slate-800 flex items-center gap-2">
+                    <i data-lucide="info" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+                    <span>Logika: Lampu menyala hanya jika <strong>Malam Hari (LDR DO=1)</strong> DAN <strong>SW SENS = ON</strong>.</span>
+                </div>
+            </div>
+
+            <!-- Card 5: LPJ Jalur Atas (2 Tiang Lampu Otomasi IR 24/7) -->
+            <div class="bg-cardBg border border-cardBorder rounded-2xl p-5 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <i data-lucide="navigation" class="w-4 h-4 text-cyan-400"></i>
+                        LPJ Jalur Atas (Smart Highway IR 24/7)
+                    </span>
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                        Hold-Time: 1.0s
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- LPJ Atas 1 (GPIO 14, IR 1 GPIO 34) -->
+                    <div id="box-lpj-atas-1" class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 transition-all duration-300">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="text-xs font-bold text-slate-200">LPJ Jalur Atas 1</div>
+                                <div class="text-[11px] text-slate-500 font-mono">LED: G14 | IR: G34</div>
+                            </div>
+                            <span id="badge-ir1" class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700">
+                                BEBAS
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-3 mt-3">
+                            <div id="lamp-atas-1" class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center transition-all">
+                                <i data-lucide="lightbulb" class="w-5 h-5 text-slate-500"></i>
+                            </div>
+                            <div>
+                                <div class="text-[11px] text-slate-400">Lampu Tiang 1</div>
+                                <div id="status-atas-1" class="text-sm font-bold text-slate-500">PADAM</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- LPJ Atas 2 (GPIO 27, IR 2 GPIO 35) -->
+                    <div id="box-lpj-atas-2" class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 transition-all duration-300">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="text-xs font-bold text-slate-200">LPJ Jalur Atas 2</div>
+                                <div class="text-[11px] text-slate-500 font-mono">LED: G27 | IR: G35</div>
+                            </div>
+                            <span id="badge-ir2" class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700">
+                                BEBAS
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-3 mt-3">
+                            <div id="lamp-atas-2" class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center transition-all">
+                                <i data-lucide="lightbulb" class="w-5 h-5 text-slate-500"></i>
+                            </div>
+                            <div>
+                                <div class="text-[11px] text-slate-400">Lampu Tiang 2</div>
+                                <div id="status-atas-2" class="text-sm font-bold text-slate-500">PADAM</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-xs text-slate-400 bg-slate-900/50 p-3 rounded-lg border border-slate-800 flex items-center gap-2">
+                    <i data-lucide="car" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+                    <span>Mendeteksi kendaraan lewat secara mandiri siang & malam dengan off-delay 1 detik.</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ROW 3: LPJ JALUR BAWAH (SIMULATOR EDUKASI RANGKAIAN BNC SERI & PARALEL) -->
+        <div class="bg-cardBg border border-cardBorder rounded-2xl p-5 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-5">
+                <div>
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <i data-lucide="cpu" class="w-4 h-4 text-indigo-400"></i>
+                        LPJ Jalur Bawah (Simulator Rangkaian Seri & Paralel BNC)
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Media interaksi edukasi fisika kelistrikan dengan soket kabel BNC</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-400">Master Armed:</span>
+                    <span id="val-lower-armed" class="text-xs font-bold px-2.5 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                        STANDBY (Menunggu Malam & SW SENS)
+                    </span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- MODUL SERI ANTI-CURANG -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5">
+                    <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                            <span class="text-xs font-bold text-slate-200">RANGKAIAN SERI (Anti-Curang)</span>
+                        </div>
+                        <span id="status-seri-integrity" class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-500">
+                            Loop Terbuka
+                        </span>
+                    </div>
+
+                    <p class="text-xs text-slate-400 mb-4">
+                        Wajib menghubungkan 2 pasang kabel BNC. Jika ada 1 kabel dicabut, seluruh lampu seri padam.
+                    </p>
+
+                    <!-- Sockets and Status -->
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div id="card-bnc-seri-1" class="p-3 rounded-lg border border-slate-800 bg-slate-950/60 text-center">
+                            <div class="text-[11px] text-slate-400 font-medium">BNC 1-2 (G4)</div>
+                            <div id="txt-bnc-seri-1" class="text-xs font-bold text-slate-500 mt-1">TERCABUT</div>
+                        </div>
+                        <div id="card-bnc-seri-2" class="p-3 rounded-lg border border-slate-800 bg-slate-950/60 text-center">
+                            <div class="text-[11px] text-slate-400 font-medium">BNC 3-4 (G25)</div>
+                            <div id="txt-bnc-seri-2" class="text-xs font-bold text-slate-500 mt-1">TERCABUT</div>
+                        </div>
+                    </div>
+
+                    <!-- Lampu Seri Output -->
+                    <div id="box-lamp-seri" class="p-3.5 rounded-xl border border-slate-800 bg-slate-950/40 flex items-center justify-between transition-all">
+                        <div class="flex items-center gap-3">
+                            <div id="lamp-seri-bulb" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center transition-all">
+                                <i data-lucide="lightbulb" class="w-6 h-6 text-slate-500"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold text-slate-200">2 LED LPJ Seri (Kiri Bawah)</div>
+                                <div class="text-[11px] text-slate-500 font-mono">Pin GPIO 26 (Paralel Fisik)</div>
+                            </div>
+                        </div>
+                        <span id="txt-lamp-seri" class="text-xs font-bold text-slate-500">PADAM</span>
+                    </div>
+                </div>
+
+                <!-- MODUL PARALEL MANDIRI -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5">
+                    <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span class="text-xs font-bold text-slate-200">RANGKAIAN PARALEL (Mandiri)</span>
+                        </div>
+                        <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            2 Cabang Independen
+                        </span>
+                    </div>
+
+                    <p class="text-xs text-slate-400 mb-4">
+                        Tiap cabang bekerja independen. Memutus satu kabel tidak mempengaruhi cabang lainnya.
+                    </p>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <!-- Cabang Paralel 1 -->
+                        <div id="box-par-1" class="p-3.5 rounded-xl border border-slate-800 bg-slate-950/40 flex flex-col justify-between transition-all">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-[11px] font-bold text-slate-300">Cabang 1 (G16)</span>
+                                <span id="txt-bnc-par-1" class="text-[10px] font-bold text-slate-500">OFF</span>
+                            </div>
+                            <div class="flex items-center gap-2.5 mt-2">
+                                <div id="lamp-par-1-bulb" class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center transition-all">
+                                    <i data-lucide="lightbulb" class="w-4 h-4 text-slate-500"></i>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] text-slate-400">LPJ Par 1 (G33)</div>
+                                    <div id="txt-lamp-par-1" class="text-xs font-bold text-slate-500">PADAM</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cabang Paralel 2 -->
+                        <div id="box-par-2" class="p-3.5 rounded-xl border border-slate-800 bg-slate-950/40 flex flex-col justify-between transition-all">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-[11px] font-bold text-slate-300">Cabang 2 (G17)</span>
+                                <span id="txt-bnc-par-2" class="text-[10px] font-bold text-slate-500">OFF</span>
+                            </div>
+                            <div class="flex items-center gap-2.5 mt-2">
+                                <div id="lamp-par-2-bulb" class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center transition-all">
+                                    <i data-lucide="lightbulb" class="w-4 h-4 text-slate-500"></i>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] text-slate-400">LPJ Par 2 (G32)</div>
+                                    <div id="txt-lamp-par-2" class="text-xs font-bold text-slate-500">PADAM</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-[11px] text-slate-500">
+                        *Seluruh colokan soket BNC dilengkapi filter digital debounce 35ms anti-chatter.
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ROW 4: TELEMETRY RAW LOG & DIAGNOSTIC DRAWER -->
+        <div class="bg-cardBg border border-cardBorder rounded-2xl overflow-hidden shadow-sm">
+            <button onclick="toggleLogPanel()" class="w-full px-5 py-3.5 bg-slate-900/60 hover:bg-slate-900 flex items-center justify-between text-xs font-semibold text-slate-300 transition">
+                <span class="flex items-center gap-2">
+                    <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i>
+                    Live Telemetry Payload & Raw Logs
+                </span>
+                <span class="flex items-center gap-3">
+                    <span class="text-[11px] text-slate-500 font-mono" id="log-timestamp">Terakhir diterima: -</span>
+                    <i id="icon-chevron" data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-300"></i>
+                </span>
+            </button>
+            <div id="panel-log" class="hidden p-4 bg-black/60 border-t border-cardBorder font-mono text-xs text-slate-400 space-y-2 max-h-56 overflow-y-auto">
+                <div class="flex justify-between text-slate-500 border-b border-slate-800 pb-1">
+                    <span>Topic: <code id="lbl-active-topic" class="text-cyan-400">smartcity/esp32/telemetry</code></span>
+                    <button onclick="clearLog()" class="hover:text-slate-300 underline">Bersihkan Log</button>
+                </div>
+                <pre id="code-payload" class="text-emerald-400 whitespace-pre-wrap leading-relaxed">// Menunggu paket data telemetri pertama dari broker MQTT...</pre>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-cardBorder py-4 text-center text-xs text-slate-500">
+        Smart City Diorama ESP32 • Single-File Static Dashboard • Powered by MQTT.js & Tailwind CSS
+    </footer>
+
+    <!-- MODAL PENGATURAN BROKER & TOPIK -->
+    <div id="modal-config" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-cardBg border border-cardBorder rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-5 h-5 text-cyan-400"></i>
+                    Konfigurasi MQTT Web
+                </h3>
+                <button onclick="toggleConfigModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Preset Broker Publik</label>
+                    <select id="cfg-preset" onchange="applyPreset()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200">
+                        <option value="emqx">EMQX Public (broker.emqx.io:8084/mqtt) - Rekomendasi</option>
+                        <option value="hivemq">HiveMQ Public (broker.hivemq.com:8884/mqtt)</option>
+                        <option value="mosquitto">Eclipse Mosquitto (test.mosquitto.org:8081/mqtt)</option>
+                        <option value="custom">Custom WebSocket URL</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">WebSocket URL (WSS)</label>
+                    <input type="text" id="cfg-url" value="wss://broker.emqx.io:8084/mqtt" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 font-mono text-cyan-300">
+                </div>
+
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Base Topic Proyek</label>
+                    <input type="text" id="cfg-basetopic" value="smartcity/esp32" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 font-mono text-emerald-300">
+                    <p class="text-[11px] text-slate-500 mt-1">Dashboard akan mendengarkan &lt;BaseTopic&gt;/telemetry dan &lt;BaseTopic&gt;/status</p>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                <button onclick="toggleConfigModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold">
+                    Batal
+                </button>
+                <button onclick="saveAndReconnect()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold shadow-glow-blue">
+                    Simpan & Sambungkan Ulang
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        // Inisialisasi ikon Lucide
+        lucide.createIcons();
+
+        // Konfigurasi Default
+        let CONFIG = {
+            brokerUrl: localStorage.getItem('sc_broker_url') || 'wss://broker.emqx.io:8084/mqtt',
+            baseTopic: localStorage.getItem('sc_base_topic') || 'smartcity/esp32',
+        };
+
+        let mqttClient = null;
+        let simulatorInterval = null;
+        let isSimulatorRunning = false;
+        let lastPacketTime = 0;
+
+        // Watchdog Heartbeat: Cek jika ESP32 tidak mengirim data selama > 6 detik
+        setInterval(() => {
+            if (!isSimulatorRunning && lastPacketTime > 0) {
+                if (Date.now() - lastPacketTime > 6000) {
+                    const dot = document.getElementById('dot-device');
+                    const txt = document.getElementById('text-device');
+                    dot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+                    txt.className = 'font-semibold text-rose-400';
+                    txt.innerText = 'OFFLINE (Timeout > 6s)';
+                }
+            }
+        }, 2000);
+
+        // Inisialisasi Form Pengaturan
+        document.getElementById('cfg-url').value = CONFIG.brokerUrl;
+        document.getElementById('cfg-basetopic').value = CONFIG.baseTopic;
+        document.getElementById('lbl-active-topic').innerText = CONFIG.baseTopic + '/telemetry';
+
+        // =========================================================================
+        // MQTT CONNECTION LOGIC (MQTT.js)
+        // =========================================================================
+        function initMQTT() {
+            if (mqttClient) {
+                try { mqttClient.end(true); } catch (e) {}
+            }
+
+            updateMqttBadge('connecting', 'Menghubungkan ke ' + getHostName(CONFIG.brokerUrl));
+
+            const clientId = 'smartcity_web_' + Math.random().toString(16).substr(2, 8);
+
+            try {
+                mqttClient = mqtt.connect(CONFIG.brokerUrl, {
+                    clientId: clientId,
+                    clean: true,
+                    connectTimeout: 5000,
+                    reconnectPeriod: 4000,
+                });
+
+                mqttClient.on('connect', () => {
+                    updateMqttBadge('connected', 'Terhubung ke Broker');
+                    console.log('[MQTT] Connected to:', CONFIG.brokerUrl);
+
+                    // Subscribe ke telemetry dan status ESP32 (termasuk wildcard /#)
+                    const telemetryTopic = CONFIG.baseTopic + '/telemetry';
+                    const statusTopic = CONFIG.baseTopic + '/status';
+                    const wildcardTopic = CONFIG.baseTopic + '/#';
+
+                    mqttClient.subscribe([telemetryTopic, statusTopic, wildcardTopic], (err) => {
+                        if (err) console.error('[MQTT] Subscribe error:', err);
+                        else console.log('[MQTT] Subscribed to:', [telemetryTopic, statusTopic, wildcardTopic]);
+                    });
+                });
+
+                mqttClient.on('message', (topic, message) => {
+                    const msgStr = message.toString();
+                    const now = new Date().toLocaleTimeString();
+                    lastPacketTime = Date.now();
+                    document.getElementById('log-timestamp').innerText = 'Terakhir: ' + now;
+
+                    console.log('[MQTT Received]', topic, msgStr);
+
+                    if (topic.endsWith('/status')) {
+                        handleDeviceStatus(msgStr);
+                    } else if (topic.endsWith('/telemetry')) {
+                        try {
+                            const data = JSON.parse(msgStr);
+                            updateDashboard(data);
+                            document.getElementById('code-payload').innerText = JSON.stringify(data, null, 2);
+                        } catch (e) {
+                            console.error('[MQTT] JSON parse error:', e);
+                            document.getElementById('code-payload').innerText = msgStr;
+                        }
+                    }
+                });
+
+                mqttClient.on('error', (err) => {
+                    console.error('[MQTT] Error:', err);
+                    updateMqttBadge('error', 'Koneksi Gagal');
+                });
+
+                mqttClient.on('close', () => {
+                    updateMqttBadge('closed', 'Terputus dari Broker');
+                });
+
+                mqttClient.on('reconnect', () => {
+                    updateMqttBadge('connecting', 'Mencoba Reconnect...');
+                });
+
+            } catch (err) {
+                console.error('[MQTT] Exception:', err);
+                updateMqttBadge('error', 'URL Tidak Valid');
+            }
+        }
+
+        function getHostName(url) {
+            try {
+                return new URL(url).hostname;
+            } catch (e) {
+                return url;
+            }
+        }
+
+        function updateMqttBadge(status, text) {
+            const dot = document.getElementById('dot-mqtt');
+            const txt = document.getElementById('text-mqtt');
+            txt.innerText = text;
+
+            dot.className = 'w-2.5 h-2.5 rounded-full';
+            if (status === 'connected') {
+                dot.classList.add('bg-emerald-400', 'shadow-glow-green');
+                txt.className = 'font-semibold text-emerald-400';
+            } else if (status === 'connecting') {
+                dot.classList.add('bg-amber-400', 'animate-pulse');
+                txt.className = 'font-semibold text-amber-400';
+            } else {
+                dot.classList.add('bg-red-500');
+                txt.className = 'font-semibold text-red-400';
+            }
+        }
+
+        function handleDeviceStatus(status) {
+            const dot = document.getElementById('dot-device');
+            const txt = document.getElementById('text-device');
+
+            if (status.trim().toLowerCase() === 'online') {
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-glow-green';
+                txt.className = 'font-semibold text-emerald-400';
+                txt.innerText = 'ONLINE';
+            } else {
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+                txt.className = 'font-semibold text-rose-400';
+                txt.innerText = 'OFFLINE (LWT)';
+            }
+        }
+
+        // =========================================================================
+        // DASHBOARD UPDATE ENGINE
+        // =========================================================================
+        function updateDashboard(data) {
+            // Tandai ESP32 aktif menerima pesan
+            const dot = document.getElementById('dot-device');
+            const txt = document.getElementById('text-device');
+            dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-glow-green';
+            txt.className = 'font-semibold text-emerald-400';
+            txt.innerText = 'ONLINE';
+
+            // 1. LINGKUNGAN: Cuaca & LDR (data.env)
+            if (data.env) {
+                const isNight = data.env.night;
+                const ldrDo = data.env.ldr_do;
+                const masterSens = data.env.master_sens;
+                const rawSolar = data.env.solar_raw;
+                const isSolar = data.env.solar_active;
+
+                // Day / Night LDR UI
+                const tagDayNight = document.getElementById('tag-daynight');
+                const valDayNight = document.getElementById('val-daynight');
+                const iconContainer = document.getElementById('icon-container-daynight');
+                const iconDayNight = document.getElementById('icon-daynight');
+                document.getElementById('val-ldr-do').innerText = ldrDo !== undefined ? ldrDo : (isNight ? 1 : 0);
+
+                if (isNight) {
+                    tagDayNight.innerText = 'Malam Hari';
+                    tagDayNight.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30';
+                    valDayNight.innerText = 'Malam Hari (Gelap)';
+                    iconContainer.className = 'w-16 h-16 rounded-2xl bg-indigo-900/30 border border-indigo-500/30 flex items-center justify-center transition-all duration-300';
+                    iconDayNight.setAttribute('data-lucide', 'moon');
+                    iconDayNight.className = 'w-9 h-9 text-indigo-400';
+                } else {
+                    tagDayNight.innerText = 'Siang Hari';
+                    tagDayNight.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30';
+                    valDayNight.innerText = 'Siang Hari (Terang)';
+                    iconContainer.className = 'w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center transition-all duration-300';
+                    iconDayNight.setAttribute('data-lucide', 'sun');
+                    iconDayNight.className = 'w-9 h-9 text-amber-400';
+                }
+
+                // Master Switch SW SENS (GPIO 15)
+                const valSwSens = document.getElementById('val-sw-sens');
+                if (masterSens) {
+                    valSwSens.innerText = 'ON (Otomasi Aktif)';
+                    valSwSens.className = 'px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shadow-glow-green';
+                } else {
+                    valSwSens.innerText = 'OFF (Bypassed / Mati)';
+                    valSwSens.className = 'px-2.5 py-1 rounded-md text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700';
+                }
+
+                // Panel Surya & Optocoupler PC817 (GPIO 39)
+                document.getElementById('val-solar-adc').innerText = rawSolar + ' / 4095';
+                const tagSolar = document.getElementById('tag-solar');
+                const barSolar = document.getElementById('bar-solar');
+                // Persentase terang: Optocoupler aktif saat ADC rendah (< 2400)
+                let pct = Math.max(0, Math.min(100, Math.round(((4095 - rawSolar) / 4095) * 100)));
+                barSolar.style.width = pct + '%';
+
+                if (isSolar) {
+                    tagSolar.innerText = 'Daya Surya Aktif';
+                    tagSolar.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
+                    document.getElementById('val-tl-mode').innerText = 'Siklus Normal (Daya Surya Siang)';
+                    document.getElementById('val-tl-mode').className = 'font-semibold text-emerald-400';
+                } else {
+                    tagSolar.innerText = 'Padam / Redup';
+                    tagSolar.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30';
+                    document.getElementById('val-tl-mode').innerText = 'Mode Siaga Kota (Kuning Kedip)';
+                    document.getElementById('val-tl-mode').className = 'font-semibold text-amber-400';
+                }
+            }
+
+            // 2. TRAFFIC LIGHT VKS (data.traffic)
+            if (data.traffic) {
+                const state = data.traffic.state; // 'RED', 'YELLOW', 'GREEN', 'BLINK'
+                const lampR = document.getElementById('lamp-red');
+                const lampY = document.getElementById('lamp-yellow');
+                const lampG = document.getElementById('lamp-green');
+                const stateName = document.getElementById('val-tl-state-name');
+                const stateDesc = document.getElementById('val-tl-desc');
+
+                // Reset semua lampu ke off
+                lampR.className = 'w-9 h-9 rounded-full bg-red-950 border border-red-900 transition-all duration-200';
+                lampY.className = 'w-9 h-9 rounded-full bg-yellow-950 border border-yellow-900 transition-all duration-200';
+                lampG.className = 'w-9 h-9 rounded-full bg-green-950 border border-green-900 transition-all duration-200';
+
+                if (state === 'RED') {
+                    lampR.className = 'w-9 h-9 rounded-full bg-red-500 border border-red-300 shadow-glow-red transition-all duration-200';
+                    stateName.innerText = 'BERHENTI (MERAH)';
+                    stateName.className = 'text-xl font-bold text-red-400 tracking-wide';
+                    stateDesc.innerText = 'Durasi normal 4 detik aktif.';
+                } else if (state === 'YELLOW') {
+                    lampY.className = 'w-9 h-9 rounded-full bg-yellow-400 border border-yellow-200 shadow-glow-yellow transition-all duration-200';
+                    stateName.innerText = 'HATI-HATI (KUNING)';
+                    stateName.className = 'text-xl font-bold text-yellow-400 tracking-wide';
+                    stateDesc.innerText = 'Transisi ke hijau/merah (1.5 detik).';
+                } else if (state === 'GREEN') {
+                    lampG.className = 'w-9 h-9 rounded-full bg-emerald-400 border border-emerald-200 shadow-glow-green transition-all duration-200';
+                    stateName.innerText = 'BERJALAN (HIJAU)';
+                    stateName.className = 'text-xl font-bold text-emerald-400 tracking-wide';
+                    stateDesc.innerText = 'Arus kendaraan berjalan lancar.';
+                } else if (state === 'BLINK' || state === 'YELLOW_BLINK') {
+                    lampY.className = 'w-9 h-9 rounded-full bg-yellow-400 border border-yellow-200 shadow-glow-yellow pulse-fast transition-all duration-200';
+                    stateName.innerText = 'SIAGA MALAM (KUNING KEDIP)';
+                    stateName.className = 'text-xl font-bold text-amber-400 tracking-wide';
+                    stateDesc.innerText = 'Mode hemat energi surya di malam hari.';
+                }
+            }
+
+            // 3. PENERANGAN RUMAH (data.houses)
+            if (data.houses) {
+                setHouseState(1, data.houses.house_1_2);
+                setHouseState(2, data.houses.house_3_4);
+            }
+
+            // 4. LPJ JALUR ATAS (data.street_upper)
+            if (data.street_upper) {
+                setLpjAtasState(1, data.street_upper.ir1, data.street_upper.lpj1);
+                setLpjAtasState(2, data.street_upper.ir2, data.street_upper.lpj2);
+            }
+
+            // 5. LPJ JALUR BAWAH - SIMULATOR BNC (data.street_lower)
+            if (data.street_lower) {
+                const armed = data.street_lower.armed;
+                const bncS1 = data.street_lower.bnc_seri1;
+                const bncS2 = data.street_lower.bnc_seri2;
+                const lpjSeri = data.street_lower.lpj_seri;
+                const bncP1 = data.street_lower.bnc_par1;
+                const bncP2 = data.street_lower.bnc_par2;
+                const lpjP1 = data.street_lower.lpj_par1;
+                const lpjP2 = data.street_lower.lpj_par2;
+
+                const valArmed = document.getElementById('val-lower-armed');
+                if (armed) {
+                    valArmed.innerText = 'ARMED (Sistem Edukasi Siap)';
+                    valArmed.className = 'text-xs font-bold px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shadow-glow-green';
+                } else {
+                    valArmed.innerText = 'STANDBY (Nonaktif Saat Siang / Switch OFF)';
+                    valArmed.className = 'text-xs font-bold px-2.5 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700';
+                }
+
+                // Seri Module
+                updateBncTag('card-bnc-seri-1', 'txt-bnc-seri-1', bncS1);
+                updateBncTag('card-bnc-seri-2', 'txt-bnc-seri-2', bncS2);
+                
+                const seriTag = document.getElementById('status-seri-integrity');
+                if (bncS1 && bncS2) {
+                    seriTag.innerText = 'Kabel Lengkap (Valid)';
+                    seriTag.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+                } else {
+                    seriTag.innerText = 'Loop Terputus';
+                    seriTag.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20';
+                }
+
+                // Seri Bulb
+                const boxSeri = document.getElementById('box-lamp-seri');
+                const bulbSeri = document.getElementById('lamp-seri-bulb');
+                const txtSeri = document.getElementById('txt-lamp-seri');
+                if (lpjSeri) {
+                    boxSeri.className = 'p-3.5 rounded-xl border border-yellow-500/40 bg-yellow-950/20 flex items-center justify-between transition-all shadow-glow-yellow';
+                    bulbSeri.className = 'w-10 h-10 rounded-full bg-yellow-400 border border-yellow-200 flex items-center justify-center shadow-glow-yellow';
+                    bulbSeri.innerHTML = '<i data-lucide="lightbulb" class="w-6 h-6 text-yellow-950 fill-yellow-950"></i>';
+                    txtSeri.innerText = 'MENYALA';
+                    txtSeri.className = 'text-xs font-bold text-yellow-400';
+                } else {
+                    boxSeri.className = 'p-3.5 rounded-xl border border-slate-800 bg-slate-950/40 flex items-center justify-between transition-all';
+                    bulbSeri.className = 'w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center';
+                    bulbSeri.innerHTML = '<i data-lucide="lightbulb" class="w-6 h-6 text-slate-500"></i>';
+                    txtSeri.innerText = 'PADAM';
+                    txtSeri.className = 'text-xs font-bold text-slate-500';
+                }
+
+                // Paralel Module
+                updateParalelBranch(1, bncP1, lpjP1);
+                updateParalelBranch(2, bncP2, lpjP2);
+            }
+
+            // Render ulang icon Lucide setelah DOM dimutasi
+            lucide.createIcons();
+        }
+
+        function setHouseState(num, isOn) {
+            const box = document.getElementById('box-house-' + num);
+            const icon = document.getElementById('icon-house-' + num);
+            const status = document.getElementById('status-house-' + num);
+
+            if (isOn) {
+                box.className = 'bg-yellow-950/20 border border-yellow-500/40 rounded-xl p-4 flex items-center gap-3.5 shadow-glow-yellow transition-all duration-300';
+                icon.className = 'w-12 h-12 rounded-xl bg-yellow-400 flex items-center justify-center shadow-glow-yellow';
+                icon.innerHTML = '<i data-lucide="home" class="w-6 h-6 text-yellow-950"></i>';
+                status.innerText = 'MENYALA';
+                status.className = 'text-xs font-bold text-yellow-400 mt-1';
+            } else {
+                box.className = 'bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex items-center gap-3.5 transition-all duration-300';
+                icon.className = 'w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center';
+                icon.innerHTML = '<i data-lucide="home" class="w-6 h-6 text-slate-500"></i>';
+                status.innerText = 'PADAM';
+                status.className = 'text-xs font-semibold text-slate-500 mt-1';
+            }
+        }
+
+        function setLpjAtasState(num, irTriggered, isLpjOn) {
+            const badgeIr = document.getElementById('badge-ir' + num);
+            const lamp = document.getElementById('lamp-atas-' + num);
+            const status = document.getElementById('status-atas-' + num);
+            const box = document.getElementById('box-lpj-atas-' + num);
+
+            if (irTriggered) {
+                badgeIr.innerText = 'KENDARAAN LEWAT';
+                badgeIr.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 animate-pulse';
+            } else {
+                badgeIr.innerText = 'BEBAS';
+                badgeIr.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700';
+            }
+
+            if (isLpjOn) {
+                box.className = 'bg-yellow-950/20 border border-yellow-500/40 rounded-xl p-4 transition-all duration-300 shadow-glow-yellow';
+                lamp.className = 'w-9 h-9 rounded-full bg-yellow-400 border border-yellow-200 flex items-center justify-center shadow-glow-yellow';
+                lamp.innerHTML = '<i data-lucide="lightbulb" class="w-5 h-5 text-yellow-950 fill-yellow-950"></i>';
+                status.innerText = 'MENYALA';
+                status.className = 'text-sm font-bold text-yellow-400';
+            } else {
+                box.className = 'bg-slate-900/80 border border-slate-800 rounded-xl p-4 transition-all duration-300';
+                lamp.className = 'w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center';
+                lamp.innerHTML = '<i data-lucide="lightbulb" class="w-5 h-5 text-slate-500"></i>';
+                status.innerText = 'PADAM';
+                status.className = 'text-sm font-bold text-slate-500';
+            }
+        }
+
+        function updateBncTag(cardId, txtId, isConnected) {
+            const card = document.getElementById(cardId);
+            const txt = document.getElementById(txtId);
+
+            if (isConnected) {
+                card.className = 'p-3 rounded-lg border border-emerald-500/40 bg-emerald-950/20 text-center transition-all';
+                txt.innerText = 'TERPASANG';
+                txt.className = 'text-xs font-bold text-emerald-400 mt-1';
+            } else {
+                card.className = 'p-3 rounded-lg border border-slate-800 bg-slate-950/60 text-center transition-all';
+                txt.innerText = 'TERCABUT';
+                txt.className = 'text-xs font-bold text-slate-500 mt-1';
+            }
+        }
+
+        function updateParalelBranch(branchNum, isBncConnected, isLpjOn) {
+            const box = document.getElementById('box-par-' + branchNum);
+            const txtBnc = document.getElementById('txt-bnc-par-' + branchNum);
+            const bulb = document.getElementById('lamp-par-' + branchNum + '-bulb');
+            const txtLamp = document.getElementById('txt-lamp-par-' + branchNum);
+
+            if (isBncConnected) {
+                txtBnc.innerText = 'TERPASANG';
+                txtBnc.className = 'text-[10px] font-bold text-emerald-400';
+            } else {
+                txtBnc.innerText = 'TERCABUT';
+                txtBnc.className = 'text-[10px] font-bold text-slate-500';
+            }
+
+            if (isLpjOn) {
+                box.className = 'p-3.5 rounded-xl border border-yellow-500/40 bg-yellow-950/20 flex flex-col justify-between transition-all shadow-glow-yellow';
+                bulb.className = 'w-8 h-8 rounded-full bg-yellow-400 border border-yellow-200 flex items-center justify-center shadow-glow-yellow';
+                bulb.innerHTML = '<i data-lucide="lightbulb" class="w-4 h-4 text-yellow-950 fill-yellow-950"></i>';
+                txtLamp.innerText = 'MENYALA';
+                txtLamp.className = 'text-xs font-bold text-yellow-400';
+            } else {
+                box.className = 'p-3.5 rounded-xl border border-slate-800 bg-slate-950/40 flex flex-col justify-between transition-all';
+                bulb.className = 'w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center';
+                bulb.innerHTML = '<i data-lucide="lightbulb" class="w-4 h-4 text-slate-500"></i>';
+                txtLamp.innerText = 'PADAM';
+                txtLamp.className = 'text-xs font-bold text-slate-500';
+            }
+        }
+
+        // =========================================================================
+        // UI HELPERS (MODAL, LOG PANEL, SIMULATOR)
+        // =========================================================================
+        function toggleConfigModal() {
+            const m = document.getElementById('modal-config');
+            m.classList.toggle('hidden');
+        }
+
+        function applyPreset() {
+            const preset = document.getElementById('cfg-preset').value;
+            const urlInput = document.getElementById('cfg-url');
+            if (preset === 'emqx') urlInput.value = 'wss://broker.emqx.io:8084/mqtt';
+            else if (preset === 'hivemq') urlInput.value = 'wss://broker.hivemq.com:8884/mqtt';
+            else if (preset === 'mosquitto') urlInput.value = 'wss://test.mosquitto.org:8081/mqtt';
+        }
+
+        function saveAndReconnect() {
+            const newUrl = document.getElementById('cfg-url').value.trim();
+            const newTopic = document.getElementById('cfg-basetopic').value.trim();
+
+            CONFIG.brokerUrl = newUrl;
+            CONFIG.baseTopic = newTopic;
+            localStorage.setItem('sc_broker_url', newUrl);
+            localStorage.setItem('sc_base_topic', newTopic);
+
+            document.getElementById('lbl-active-topic').innerText = newTopic + '/telemetry';
+            toggleConfigModal();
+
+            // Re-connect
+            initMQTT();
+        }
+
+        function toggleLogPanel() {
+            const p = document.getElementById('panel-log');
+            const icon = document.getElementById('icon-chevron');
+            p.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
+        }
+
+        function clearLog() {
+            document.getElementById('code-payload').innerText = '// Log dibersihkan. Menunggu data baru...';
+        }
+
+        // =========================================================================
+        // BUILT-IN DEMO SIMULATOR (Untuk Uji Coba Tanpa Harus Menyalakan ESP32)
+        // =========================================================================
+        let simStep = 0;
+        function toggleSimulator() {
+            const btn = document.getElementById('btn-simulator');
+            const txt = document.getElementById('text-simulator');
+
+            if (!isSimulatorRunning) {
+                isSimulatorRunning = true;
+                txt.innerText = 'Demo Simulator: ON';
+                btn.className = 'px-3 py-1.5 bg-purple-600 hover:bg-purple-500 border border-purple-400 rounded-lg flex items-center gap-1.5 text-white transition font-medium shadow-glow-blue';
+
+                simulatorInterval = setInterval(() => {
+                    simStep++;
+                    const isNight = (simStep % 16) >= 8;
+                    const tlStates = ['RED', 'YELLOW', 'GREEN'];
+                    const currentTlState = isNight ? 'BLINK' : tlStates[simStep % 3];
+                    const carAtas1 = (simStep % 4 === 1);
+                    const carAtas2 = (simStep % 5 === 2);
+                    const bncS1 = (simStep % 6 !== 0);
+                    const bncS2 = (simStep % 6 !== 1);
+                    const bncP1 = (simStep % 3 !== 0);
+                    const bncP2 = (simStep % 4 !== 0);
+
+                    const dummyData = {
+                        env: {
+                            ldr_do: isNight ? 1 : 0,
+                            night: isNight,
+                            solar_raw: isNight ? 3200 : 1600,
+                            solar_active: !isNight,
+                            master_sens: true
+                        },
+                        traffic: {
+                            state: currentTlState,
+                            mode: isNight ? 'STANDBY_BLINK' : 'NORMAL'
+                        },
+                        street_upper: {
+                            ir1: carAtas1,
+                            ir2: carAtas2,
+                            lpj1: carAtas1,
+                            lpj2: carAtas2
+                        },
+                        street_lower: {
+                            armed: isNight,
+                            bnc_seri1: bncS1,
+                            bnc_seri2: bncS2,
+                            lpj_seri: isNight && bncS1 && bncS2,
+                            bnc_par1: bncP1,
+                            bnc_par2: bncP2,
+                            lpj_par1: isNight && bncP1,
+                            lpj_par2: isNight && bncP2
+                        },
+                        houses: {
+                            house_1_2: isNight,
+                            house_3_4: isNight
+                        },
+                        system: {
+                            ip: "192.168.1.100 (DEMO)",
+                            rssi: -58,
+                            uptime: simStep * 2
+                        }
+                    };
+
+                    updateDashboard(dummyData);
+                    document.getElementById('code-payload').innerText = JSON.stringify(dummyData, null, 2);
+                    document.getElementById('log-timestamp').innerText = 'Demo: ' + new Date().toLocaleTimeString();
+                }, 1500);
+
+            } else {
+                isSimulatorRunning = false;
+                clearInterval(simulatorInterval);
+                txt.innerText = 'Demo Simulator: OFF';
+                btn.className = 'px-3 py-1.5 bg-purple-900/40 hover:bg-purple-900/60 border border-purple-500/40 rounded-lg flex items-center gap-1.5 text-purple-300 transition font-medium';
+            }
+        }
+
+        // Jalankan koneksi MQTT saat halaman dimuat
+        window.addEventListener('DOMContentLoaded', () => {
+            initMQTT();
+        });
+    </script>
+</body>
+</html>

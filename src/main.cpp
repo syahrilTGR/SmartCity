@@ -31,6 +31,9 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <WiFiClient.h>
+#include <PubSubClient.h>
+#include <ArduinoJson.h>
 #include <WiFiManager.h>
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
@@ -92,6 +95,24 @@ constexpr unsigned long DURATION_BLINK     = 500;  // 500 ms ON, 500 ms OFF
 
 // Interval Telemetri Serial Monitor
 constexpr unsigned long TELEMETRY_INTERVAL = 600;
+
+// =============================================================================
+// KONFIGURASI MQTT BROKER & TOPIK TELEMETRI
+// =============================================================================
+constexpr const char* MQTT_BROKER       = "broker.emqx.io";
+constexpr int         MQTT_PORT         = 1883;
+constexpr const char* MQTT_TOPIC_STATUS = "smartcity/esp32/status";
+constexpr const char* MQTT_TOPIC_TELEM  = "smartcity/esp32/telemetry";
+
+constexpr unsigned long MQTT_RECONNECT_INTERVAL = 4000; // Interval coba koneksi ulang (ms)
+constexpr unsigned long MQTT_PUBLISH_INTERVAL   = 1000; // Interval kirim data telemetri reguler (ms)
+constexpr unsigned long MQTT_MIN_CHANGE_GAP     = 100;  // Batas jeda minimal pengiriman saat ada event perubahan (ms)
+
+WiFiClient espClient;
+PubSubClient mqttClient(espClient);
+
+unsigned long lastMqttReconnectTime = 0;
+unsigned long lastMqttPublishTime   = 0;
 
 // =============================================================================
 // STRUKTUR DATA DEBOUNCE UNTUK INPUT DIGITAL
@@ -305,13 +326,13 @@ void setup() {
 
     Serial.println("Inisialisasi I/O selesai. Seluruh filter debounce & histeresis aktif!");
 
-    // 4. Inisialisasi WiFiManager Non-Blocking & Portal AP 30 Detik
+    // 4. Inisialisasi WiFiManager Non-Blocking (Connect Timeout 15 Detik & Portal Standby Tanpa Batas)
     wm.setConfigPortalBlocking(false); // NON-BLOCKING: Loop utama langsung jalan tanpa menunggu!
-    wm.setConfigPortalTimeout(30);     // Portal AP aktif maks 30 detik di latar belakang
-    wm.setConnectTimeout(4);           // Mencoba konek ke router tersimpan maks 4 detik
+    wm.setConfigPortalTimeout(0);      // Portal AP tetap terbuka (tanpa batas waktu) sampai ada yang menyambungkan Wi-Fi
+    wm.setConnectTimeout(15);          // Coba konek ke router tersimpan selama 15 detik
 
     Serial.println("\n[WIFI] Memulai WiFiManager (Mode Non-Blocking)...");
-    Serial.println("[WIFI] Jika belum terhubung, sambungkan HP ke Wi-Fi: 'SmartCity-AP' (Aktif 30 detik)");
+    Serial.println("[WIFI] Mencoba konek ke router tersimpan (Maks 15 detik)...");
 
     if (wm.autoConnect("SmartCity-AP")) {
         Serial.println("[WIFI] Berhasil terhubung ke Wi-Fi!");
@@ -319,9 +340,13 @@ void setup() {
         Serial.println(WiFi.localIP());
         setupOTA();
     } else {
-        Serial.println("[WIFI] Portal 'SmartCity-AP' aktif di latar belakang (30 detik).");
-        Serial.println("[WIFI] Loop utama diorama LANGSUNG BERJALAN tanpa jeda!");
+        Serial.println("[WIFI] Belum terhubung dalam 15 detik. Portal 'SmartCity-AP' aktif di latar belakang (tanpa batas waktu).");
+        Serial.println("[WIFI] Sambungkan HP ke 'SmartCity-AP' kapan saja untuk set Wi-Fi. Loop diorama LANGSUNG BERJALAN!");
     }
+
+    // 5. Inisialisasi Klien MQTT (Buffer 1024 Bytes untuk JSON Telemetri)
+    mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
+    mqttClient.setBufferSize(1024);
 
     Serial.println("----------------------------------------------------------------");
 }
@@ -496,6 +521,126 @@ void printTelemetry(unsigned long now, int ldrState, int rawSolar) {
     }
 }
 
+/**
+ * 8. Publikasi Telemetri JSON ke MQTT Broker (Non-Blocking)
+ */
+void publishTelemetry(unsigned long now, bool force = false) {
+    if (!mqttClient.connected()) return;
+
+    if (!force && (now - lastMqttPublishTime < MQTT_PUBLISH_INTERVAL)) {
+        return;
+    }
+    lastMqttPublishTime = now;
+
+    JsonDocument doc;
+
+    // 1. Kondisi Lingkungan & Cahaya
+    doc["env"]["ldr_do"]       = currentLdrState;
+    doc["env"]["night"]        = isNight;
+    doc["env"]["solar_raw"]    = currentRawSolar;
+    doc["env"]["solar_active"] = isSolarDay;
+    doc["env"]["master_sens"]  = isMasterSensorEnabled;
+
+    // 2. Traffic Light VKS
+    if (isSolarDay) {
+        doc["traffic"]["mode"] = "NORMAL";
+        if (tlState == TL_RED)         doc["traffic"]["state"] = "RED";
+        else if (tlState == TL_YELLOW) doc["traffic"]["state"] = "YELLOW";
+        else if (tlState == TL_GREEN)  doc["traffic"]["state"] = "GREEN";
+    } else {
+        doc["traffic"]["mode"]  = "STANDBY_BLINK";
+        doc["traffic"]["state"] = yellowBlinkState ? "BLINK" : "STANDBY";
+    }
+
+    // 3. LPJ Jalur Atas (2 Tiang Lampu IR 24/7)
+    doc["street_upper"]["ir1"]  = sensorIR1.isLow(now);
+    doc["street_upper"]["ir2"]  = sensorIR2.isLow(now);
+    doc["street_upper"]["lpj1"] = (digitalRead(PIN_LPJ_ATAS_1) == HIGH);
+    doc["street_upper"]["lpj2"] = (digitalRead(PIN_LPJ_ATAS_2) == HIGH);
+
+    // 4. LPJ Jalur Bawah (Simulator Seri Anti-Curang & Paralel)
+    doc["street_lower"]["armed"]     = isLowerStreetArmed;
+    doc["street_lower"]["bnc_seri1"] = btnBncSeri1.isLow(now);
+    doc["street_lower"]["bnc_seri2"] = btnBncSeri2.isLow(now);
+    doc["street_lower"]["lpj_seri"]  = (digitalRead(PIN_LPJ_SERI) == HIGH);
+    doc["street_lower"]["bnc_par1"]  = btnBncPar1.isLow(now);
+    doc["street_lower"]["bnc_par2"]  = btnBncPar2.isLow(now);
+    doc["street_lower"]["lpj_par1"]  = (digitalRead(PIN_LPJ_PAR_1) == HIGH);
+    doc["street_lower"]["lpj_par2"]  = (digitalRead(PIN_LPJ_PAR_2) == HIGH);
+
+    // 5. Penerangan Pemukiman (Rumah 1 - 4)
+    doc["houses"]["house_1_2"] = (digitalRead(PIN_HOUSE_1_2) == HIGH);
+    doc["houses"]["house_3_4"] = (digitalRead(PIN_HOUSE_3_4) == HIGH);
+
+    // 6. Data Sistem
+    doc["system"]["ip"]     = WiFi.localIP().toString();
+    doc["system"]["rssi"]   = WiFi.RSSI();
+    doc["system"]["uptime"] = now / 1000;
+
+    char buffer[768];
+    size_t len = serializeJson(doc, buffer, sizeof(buffer));
+    mqttClient.publish(MQTT_TOPIC_TELEM, buffer, len);
+}
+
+/**
+ * 9. Pengendali Koneksi MQTT & LWT (Non-Blocking)
+ */
+void handleMQTT(unsigned long now) {
+    if (WiFi.status() != WL_CONNECTED) {
+        return;
+    }
+
+    if (!mqttClient.connected()) {
+        if (now - lastMqttReconnectTime >= MQTT_RECONNECT_INTERVAL) {
+            lastMqttReconnectTime = now;
+            Serial.printf("[MQTT] Menghubungkan ke broker: %s:%d...\n", MQTT_BROKER, MQTT_PORT);
+
+            // Client ID unik ESP32 berdasarkan MAC address
+            String clientId = "ESP32_SmartCity_" + WiFi.macAddress();
+            clientId.replace(":", "");
+
+            // LWT (Last Will & Testament): Jika ESP32 mati/terputus, broker publikasikan "offline" (retained)
+            if (mqttClient.connect(clientId.c_str(), MQTT_TOPIC_STATUS, 1, true, "offline")) {
+                Serial.println("[MQTT] Berhasil terhubung ke Broker EMQX!");
+                // Publikasikan status online (retained)
+                mqttClient.publish(MQTT_TOPIC_STATUS, "online", true);
+                // Kirim telemetri snapshot pertama
+                publishTelemetry(now, true);
+            } else {
+                Serial.printf("[MQTT] Gagal terhubung, rc=%d. Mencoba lagi dalam 4 detik...\n", mqttClient.state());
+            }
+        }
+    } else {
+        mqttClient.loop();
+
+        // 1. Publikasi telemetri periodik (1 detik)
+        publishTelemetry(now, false);
+
+        // 2. Publikasi instan jika ada transisi output lampu/sensor (Fast Response)
+        static int lastLpj1 = -1, lastLpj2 = -1, lastSeri = -1, lastP1 = -1, lastP2 = -1, lastH1 = -1;
+        static int lastTl = -1, lastNight = -1, lastSwSens = -1;
+        int curLpj1   = digitalRead(PIN_LPJ_ATAS_1);
+        int curLpj2   = digitalRead(PIN_LPJ_ATAS_2);
+        int curSeri   = digitalRead(PIN_LPJ_SERI);
+        int curP1     = digitalRead(PIN_LPJ_PAR_1);
+        int curP2     = digitalRead(PIN_LPJ_PAR_2);
+        int curH1     = digitalRead(PIN_HOUSE_1_2);
+        int curTl     = isSolarDay ? (int)tlState : (yellowBlinkState ? 99 : 98);
+        int curSwSens = isMasterSensorEnabled ? 1 : 0;
+
+        bool stateChanged = (curLpj1 != lastLpj1 || curLpj2 != lastLpj2 || curSeri != lastSeri ||
+                             curP1 != lastP1 || curP2 != lastP2 || curH1 != lastH1 ||
+                             curTl != lastTl || isNight != lastNight || curSwSens != lastSwSens);
+
+        if (stateChanged && (now - lastMqttPublishTime >= MQTT_MIN_CHANGE_GAP)) {
+            lastLpj1 = curLpj1; lastLpj2 = curLpj2; lastSeri = curSeri;
+            lastP1 = curP1; lastP2 = curP2; lastH1 = curH1;
+            lastTl = curTl; lastNight = isNight; lastSwSens = curSwSens;
+            publishTelemetry(now, true);
+        }
+    }
+}
+
 // =============================================================================
 // MAIN LOOP (Non-Blocking Real-Time Architecture)
 // =============================================================================
@@ -555,6 +700,9 @@ void loop() {
 
     // 4. Pelaporan Status ke Serial Monitor
     printTelemetry(now, currentLdrState, currentRawSolar);
+
+    // 5. Penanganan Komunikasi MQTT & Publikasi Telemetri (Non-Blocking)
+    handleMQTT(now);
 
     delay(5); // Loop sampling interval ringan (200 FPS) untuk kestabilan RTOS
 }
