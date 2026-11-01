@@ -43,7 +43,7 @@
 // Sensor Input-Only (ESP32 ADC1 / Digital Input)
 constexpr uint8_t PIN_IR1         = 34; // IR Proximity 1 (Jalur Atas 1)
 constexpr uint8_t PIN_IR2         = 35; // IR Proximity 2 (Jalur Atas 2)
-constexpr uint8_t PIN_LDR         = 36; // Sensor Cahaya LDR (VP, ADC1_CH0)
+constexpr uint8_t PIN_LDR         = 36; // Modul Sensor LDR DO (VP, Digital Input LM393)
 constexpr uint8_t PIN_OPTO_SOLAR  = 39; // Optocoupler Panel Surya (VN, ADC1_CH3)
 
 // Input Sensing Simulator & Saklar (Internal Pull-Up)
@@ -72,9 +72,7 @@ constexpr uint8_t PIN_TL_GREEN    = 13; // Traffic Light Hijau
 // AMBANG BATAS (THRESHOLDS) & PARAMETER WAKTU
 // =============================================================================
 
-// Ambang Batas Histeresis Sensor LDR (Mencegah kedipan saat batas senja)
-constexpr int LDR_ENTER_NIGHT       = 3650; // Masuk malam jika ADC < 3650 (cukup bayangan tangan / redup ringan)
-constexpr int LDR_EXIT_NIGHT        = 3850; // Kembali siang jika ADC > 3850 (terkena cahaya lampu ruangan langsung)
+// Ambang Batas Histeresis Sensor LDR: Tidak dibutuhkan (Modul LM393 dikalibrasi via trimpot biru)
 
 // Ambang Batas Histeresis Sensor Panel Surya PC817
 constexpr int SOLAR_ENTER_DAY       = 2400; // Masuk daya surya aktif jika ADC < 2400
@@ -147,6 +145,9 @@ DebouncedInput sensorIR2;
 unsigned long ir1ActiveTimer = 0;
 unsigned long ir2ActiveTimer = 0;
 
+// Objek Global WiFiManager (untuk penanganan non-blocking portal di loop)
+WiFiManager wm;
+
 // =============================================================================
 // STATE TRAFFIC LIGHT & TELEMETRI
 // =============================================================================
@@ -169,6 +170,8 @@ bool isNight = false;
 bool isSolarDay = false;
 bool isMasterSensorEnabled = false;
 bool isLowerStreetArmed = false;
+int currentLdrState = 0;    // 0 = LOW (Siang), 1 = HIGH (Malam dari DO LM393)
+int currentRawSolar = 4095;
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -181,12 +184,74 @@ void setTrafficLight(bool r, bool y, bool g) {
 }
 
 // =============================================================================
+// HELPER ADC MULTI-SAMPLE AVERAGING (STABILISASI NON-LINEARITAS & NOISE)
+// =============================================================================
+
+// Pembacaan ADC dengan 64 multi-sample averaging untuk menstabilkan output & meredam noise RF
+int readSmoothADC(uint8_t pin, int samples = 64) {
+    long sum = 0;
+    for (int i = 0; i < samples; i++) {
+        sum += analogRead(pin);
+        delayMicroseconds(25);
+    }
+    return (int)(sum / samples);
+}
+
+// =============================================================================
+// HELPER ARDUINO OTA (OVER-THE-AIR FIRMWARE UPDATE)
+// =============================================================================
+
+void setupOTA() {
+    ArduinoOTA.setHostname("smartcity-esp32");
+
+    ArduinoOTA.onStart([]() {
+        String type = (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
+        Serial.println("\n[OTA] Memulai transfer firmware Over-The-Air: " + type);
+        // Matikan semua output lampu saat proses flash agar aman dari lonjakan arus
+        digitalWrite(PIN_LPJ_ATAS_1, LOW);
+        digitalWrite(PIN_LPJ_ATAS_2, LOW);
+        digitalWrite(PIN_LPJ_SERI,   LOW);
+        digitalWrite(PIN_LPJ_PAR_1,  LOW);
+        digitalWrite(PIN_LPJ_PAR_2,  LOW);
+        digitalWrite(PIN_HOUSE_1_2,  LOW);
+        digitalWrite(PIN_HOUSE_3_4,  LOW);
+        setTrafficLight(false, false, false);
+    });
+
+    ArduinoOTA.onEnd([]() {
+        Serial.println("\n[OTA] Update Berhasil! ESP32 me-restart...");
+    });
+
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+        Serial.printf("[OTA] Progress Transfer: %u%%\r", (progress / (total / 100)));
+    });
+
+    ArduinoOTA.onError([](ota_error_t error) {
+        Serial.printf("[OTA] Error [%u]: ", error);
+        if (error == OTA_AUTH_ERROR)         Serial.println("Otorisasi Gagal");
+        else if (error == OTA_BEGIN_ERROR)   Serial.println("Inisialisasi Gagal");
+        else if (error == OTA_CONNECT_ERROR) Serial.println("Koneksi Gagal");
+        else if (error == OTA_RECEIVE_ERROR) Serial.println("Penerimaan Gagal");
+        else if (error == OTA_END_ERROR)     Serial.println("Finalisasi Gagal");
+    });
+
+    ArduinoOTA.begin();
+    Serial.println("[OTA] Service ArduinoOTA Siap!");
+    Serial.printf(">>> PERINTAH UPLOAD VIA WI-FI (OTA):\n");
+    Serial.printf("    pio run -e esp32dev -t upload --upload-port %s\n", WiFi.localIP().toString().c_str());
+}
+
+// =============================================================================
 // SETUP
 // =============================================================================
 
 void setup() {
     Serial.begin(115200);
     delay(1000);
+
+    // Konfigurasi atenuasi ADC skala penuh 0 - 3.3V (ADC_ATTEN_DB_11) untuk sensor panel surya
+    analogSetAttenuation(ADC_11db);
+    analogSetPinAttenuation(PIN_OPTO_SOLAR, ADC_11db);
 
     Serial.println();
     Serial.println("================================================================");
@@ -229,67 +294,35 @@ void setup() {
     digitalWrite(PIN_LPJ_PAR_2,  LOW);
     digitalWrite(PIN_HOUSE_1_2,  LOW);
     digitalWrite(PIN_HOUSE_3_4,  LOW);
-    // Inisialisasi awal kondisi malam/siang berdasarkan pembacaan sensor saat boot
-    int bootLdr = analogRead(PIN_LDR);
-    isNight = (bootLdr < LDR_ENTER_NIGHT);
+    // Inisialisasi awal kondisi malam/siang & solar saat boot
+    currentLdrState = digitalRead(PIN_LDR);
+    isNight         = (currentLdrState == HIGH); // DO = HIGH (1) -> Malam
+    currentRawSolar = readSmoothADC(PIN_OPTO_SOLAR);
+    isSolarDay      = (currentRawSolar < SOLAR_ENTER_DAY);
 
     setTrafficLight(false, false, false);
     tlStateStartTime = millis();
 
     Serial.println("Inisialisasi I/O selesai. Seluruh filter debounce & histeresis aktif!");
 
-    // 4. Inisialisasi WiFiManager & ArduinoOTA
-    WiFiManager wm;
-    wm.setConfigPortalTimeout(180); // 3 menit timeout portal konfigurasi
-    Serial.println("\n[WIFI] Memulai koneksi via WiFiManager...");
-    Serial.println("[WIFI] Jika belum terhubung, sambungkan HP ke Wi-Fi: 'SmartCity-AP'");
-    bool isConnected = wm.autoConnect("SmartCity-AP");
+    // 4. Inisialisasi WiFiManager Non-Blocking & Portal AP 30 Detik
+    wm.setConfigPortalBlocking(false); // NON-BLOCKING: Loop utama langsung jalan tanpa menunggu!
+    wm.setConfigPortalTimeout(30);     // Portal AP aktif maks 30 detik di latar belakang
+    wm.setConnectTimeout(4);           // Mencoba konek ke router tersimpan maks 4 detik
 
-    if (!isConnected) {
-        Serial.println("[WIFI] Timeout portal tercapai / Gagal konek. Melanjutkan diorama mode offline!");
-    } else {
-        Serial.println("[WIFI] Terhubung ke jaringan Wi-Fi!");
+    Serial.println("\n[WIFI] Memulai WiFiManager (Mode Non-Blocking)...");
+    Serial.println("[WIFI] Jika belum terhubung, sambungkan HP ke Wi-Fi: 'SmartCity-AP' (Aktif 30 detik)");
+
+    if (wm.autoConnect("SmartCity-AP")) {
+        Serial.println("[WIFI] Berhasil terhubung ke Wi-Fi!");
         Serial.print("[WIFI] Alamat IP ESP32: ");
         Serial.println(WiFi.localIP());
-
-        ArduinoOTA.setHostname("smartcity-esp32");
-
-        ArduinoOTA.onStart([]() {
-            String type = (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
-            Serial.println("\n[OTA] Memulai transfer firmware Over-The-Air: " + type);
-            // Matikan semua output lampu saat proses flash agar aman
-            digitalWrite(PIN_LPJ_ATAS_1, LOW);
-            digitalWrite(PIN_LPJ_ATAS_2, LOW);
-            digitalWrite(PIN_LPJ_SERI,   LOW);
-            digitalWrite(PIN_LPJ_PAR_1,  LOW);
-            digitalWrite(PIN_LPJ_PAR_2,  LOW);
-            digitalWrite(PIN_HOUSE_1_2,  LOW);
-            digitalWrite(PIN_HOUSE_3_4,  LOW);
-            setTrafficLight(false, false, false);
-        });
-
-        ArduinoOTA.onEnd([]() {
-            Serial.println("\n[OTA] Update Berhasil! ESP32 me-restart...");
-        });
-
-        ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-            Serial.printf("[OTA] Progress Transfer: %u%%\r", (progress / (total / 100)));
-        });
-
-        ArduinoOTA.onError([](ota_error_t error) {
-            Serial.printf("[OTA] Error [%u]: ", error);
-            if (error == OTA_AUTH_ERROR)         Serial.println("Otorisasi Gagal");
-            else if (error == OTA_BEGIN_ERROR)   Serial.println("Inisialisasi Gagal");
-            else if (error == OTA_CONNECT_ERROR) Serial.println("Koneksi Gagal");
-            else if (error == OTA_RECEIVE_ERROR) Serial.println("Penerimaan Gagal");
-            else if (error == OTA_END_ERROR)     Serial.println("Finalisasi Gagal");
-        });
-
-        ArduinoOTA.begin();
-        Serial.println("[OTA] Service ArduinoOTA Aktif!");
-        Serial.printf(">>> PERINTAH UPLOAD VIA WI-FI (OTA):\n");
-        Serial.printf("    pio run -e esp32dev -t upload --upload-port %s\n", WiFi.localIP().toString().c_str());
+        setupOTA();
+    } else {
+        Serial.println("[WIFI] Portal 'SmartCity-AP' aktif di latar belakang (30 detik).");
+        Serial.println("[WIFI] Loop utama diorama LANGSUNG BERJALAN tanpa jeda!");
     }
+
     Serial.println("----------------------------------------------------------------");
 }
 
@@ -298,15 +331,13 @@ void setup() {
 // =============================================================================
 
 /**
- * 1. Filter Histeresis untuk LDR (Siang / Malam):
- *    Menghilangkan efek lampu rumah berkedip-kedip saat pencahayaan di ambang batas.
+ * 1. Status Modul Sensor LDR (Siang / Malam):
+ *    Membaca logika digital DO dari modul komparator LM393 (100% kebal interferensi Wi-Fi).
+ *    - DO = HIGH (1) : Gelap / Malam Hari
+ *    - DO = LOW  (0) : Terang / Siang Hari
  */
-void updateLdrHysteresis(int rawLdr) {
-    if (!isNight && rawLdr < LDR_ENTER_NIGHT) {
-        isNight = true; // Beralih ke Malam
-    } else if (isNight && rawLdr > LDR_EXIT_NIGHT) {
-        isNight = false; // Beralih ke Siang
-    }
+void updateLdrState(int ldrState) {
+    isNight = (ldrState == HIGH);
 }
 
 /**
@@ -437,7 +468,7 @@ void updateTrafficLight(unsigned long now) {
 /**
  * 7. Telemetri Status Terpadu ke Serial Monitor (Non-Blocking)
  */
-void printTelemetry(unsigned long now, int rawLdr, int rawSolar) {
+void printTelemetry(unsigned long now, int ldrState, int rawSolar) {
     if (now - lastTelemetryTime >= TELEMETRY_INTERVAL) {
         lastTelemetryTime = now;
 
@@ -448,8 +479,8 @@ void printTelemetry(unsigned long now, int rawLdr, int rawSolar) {
             else if (tlState == TL_GREEN)  tlStr = "HIJAU ";
         }
 
-        Serial.printf("[CUACA] LDR:%4d (%-5s) | SOLAR:%4d (%-5s) | SW_SENS: %-3s || LPJ ATAS: [%d, %d] | LPJ BWH: [%s | P1:%d, P2:%d] | RUMAH: %-3s | TL: %-6s | IP: %s\n",
-                      rawLdr,
+        Serial.printf("[CUACA] LDR_DO:%d (%-5s) | SOLAR:%4d (%-5s) | SW_SENS: %-3s || LPJ ATAS: [%d, %d] | LPJ BWH: [%s | P1:%d, P2:%d] | RUMAH: %-3s | TL: %-6s | IP: %s\n",
+                      ldrState,
                       isNight ? "MALAM" : "SIANG",
                       rawSolar,
                       isSolarDay ? "SURYA" : "PADAM",
@@ -472,9 +503,19 @@ void printTelemetry(unsigned long now, int rawLdr, int rawSolar) {
 void loop() {
     unsigned long now = millis();
 
-    // 0. Handle OTA jika Wi-Fi terhubung (Non-Blocking)
+    // 0. Proses WiFiManager di latar belakang (Non-Blocking)
+    wm.process();
+
+    // Inisialisasi service OTA otomatis jika Wi-Fi terhubung belakangan via portal
+    static bool otaReady = false;
     if (WiFi.status() == WL_CONNECTED) {
+        if (!otaReady) {
+            setupOTA();
+            otaReady = true;
+        }
         ArduinoOTA.handle();
+    } else {
+        otaReady = false;
     }
 
     // Reset Wi-Fi via Serial Monitor (Ketik huruf 'r' lalu Enter untuk ganti router)
@@ -489,12 +530,16 @@ void loop() {
         }
     }
 
-    // 1. Sampling & Filter Histeresis Sensor Analog
-    int rawLdr   = analogRead(PIN_LDR);
-    int rawSolar = analogRead(PIN_OPTO_SOLAR);
+    // 1. Sampling Sensor: Modul LDR Digital & Sensor Panel Surya (ADC Optocoupler)
+    static unsigned long lastSampleTime = 0;
+    if (now - lastSampleTime >= 30) {
+        lastSampleTime = now;
+        currentLdrState = digitalRead(PIN_LDR);
+        currentRawSolar = readSmoothADC(PIN_OPTO_SOLAR, 32);
 
-    updateLdrHysteresis(rawLdr);
-    updateSolarHysteresis(rawSolar);
+        updateLdrState(currentLdrState);
+        updateSolarHysteresis(currentRawSolar);
+    }
 
     // 2. Sampling Saklar Toggle Master (Ter-Debounce)
     isMasterSensorEnabled = btnToggleSens.isLow(now);
@@ -509,7 +554,7 @@ void loop() {
     updateTrafficLight(now);
 
     // 4. Pelaporan Status ke Serial Monitor
-    printTelemetry(now, rawLdr, rawSolar);
+    printTelemetry(now, currentLdrState, currentRawSolar);
 
     delay(5); // Loop sampling interval ringan (200 FPS) untuk kestabilan RTOS
 }
