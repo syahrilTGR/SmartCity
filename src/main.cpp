@@ -6,23 +6,28 @@
  * Fitur Tambahan : Software Debounce Digital & Histeresis Analog (Anti-Flicker)
  * =============================================================================
  *
- * ARSITEKTUR & SKENARIO SISTEM (Dengan Master Switch Otomasi SW SENS di GPIO 15):
+ * ARSITEKTUR & SKENARIO SISTEM (Revisi 10-Port BNC & Motor Driver L298N):
  * 1. Penerangan Pemukiman (4 LED Rumah):
- *    - GPIO 18 (Rumah 1 & 2) & GPIO 19 (Rumah 3 & 4)
- *    - Menyala saat malam (LDR GPIO 36) jika saklar otomasi aktif (SW SENS = ON).
+ *    - GPIO 2 (Soket L): 4 LED Rumah menyala saat malam hari (LDR = HIGH / Gelap).
  *
  * 2. LPJ Jalur Atas (2 Tiang Lampu Otomatis):
  *    - GPIO 14 (LPJ Atas 1) dikendalikan IR 1 (GPIO 34).
  *    - GPIO 27 (LPJ Atas 2) dikendalikan IR 2 (GPIO 35).
- *    - Aktif jika SW SENS = ON (Debouncing + off-delay 1 detik).
+ *    - Bersiaga HANYA saat malam hari (isNight == true). Siang hari dipadamkan aman.
  *
- * 3. LPJ Jalur Bawah (4 Tiang Lampu Simulator Rangkaian):
- *    - Master Enable: LDR (Malam) && Saklar Toggle (SW SENS = ON, GPIO 15 == LOW).
- *    - Seri Anti-Curang (GPIO 26): Wajib kabel BNC 1-2 (GPIO 4) & BNC 3-4 (GPIO 25) terpasang.
- *    - Paralel Mandiri (GPIO 33, 32): Dikendalikan cabang BNC 1 (GPIO 16) & cabang BNC 2 (GPIO 17).
- *    - Seluruh colokan BNC dan saklar dilengkapi filter debouncing 35 ms.
+ * 3. LPJ Jalur Bawah (4 Tiang Lampu Mandiri Simulator BNC):
+ *    - Lampu 1 (GPIO 26 / Soket H), Lampu 2 (GPIO 12 / Soket M).
+ *    - Lampu 3 (GPIO 33 / Soket D Pin 3), Lampu 4 (GPIO 32 / Soket D Pin 1).
+ *    - Aktif saat malam hari (isNight == true) sesuai koneksi kabel BNC siswa.
  *
- * 4. Lampu Lalu Lintas Cerdas Tenaga Surya (Traffic Light VKS 5V):
+ * 4. Motor Driver L298N (2x Dinamo DC 1-Arah):
+ *    - GPIO 15 (Soket J): Output kendali motor IN1 + IN3 L298N (dapat diatur ON/OFF & PWM).
+ *
+ * 5. Master Switch Otomasi Sensor:
+ *    - Saklar toggle fisik dipasang seri memutus jalur 3.3V ke Modul LDR (Soket I).
+ *    - Saat OFF: LDR mati fisik -> terbaca Siang -> seluruh otomasi lampu padam seketika.
+ *
+ * 6. Lampu Lalu Lintas Cerdas Tenaga Surya (Traffic Light VKS 5V):
  *    - Sensor Surya: Optocoupler PC817 pada GPIO 39 (dengan histeresis anti-flicker).
  *    - Siang Hari (Daya Surya Aktif): Siklus Normal Merah -> Kuning -> Hijau.
  *    - Malam Hari (Daya Surya Padam): Mode Siaga Kota (Kuning Berkedip / Flashing Yellow).
@@ -49,22 +54,57 @@ constexpr uint8_t PIN_IR2         = 35; // IR Proximity 2 (Jalur Atas 2)
 constexpr uint8_t PIN_LDR         = 36; // Modul Sensor LDR DO (VP, Digital Input LM393)
 constexpr uint8_t PIN_OPTO_SOLAR  = 39; // Optocoupler Panel Surya (VN, ADC1_CH3)
 
-// Input Sensing Simulator & Saklar (Internal Pull-Up)
-constexpr uint8_t PIN_BNC_SERI_1  = 4;  // Sensing BNC Seri Loop 1 (Lubang 1-2)
-constexpr uint8_t PIN_BNC_SERI_2  = 25; // Sensing BNC Seri Loop 2 (Lubang 3-4, Anti-Curang)
-constexpr uint8_t PIN_BNC_PAR_1   = 16; // Sensing BNC Paralel Cabang 1 (RX2)
-constexpr uint8_t PIN_BNC_PAR_2   = 17; // Sensing BNC Paralel Cabang 2 (TX2)
-constexpr uint8_t PIN_SW_SENS     = 15; // Saklar Toggle Master Otomasi Sensor
+// =============================================================================
+// DEFINISI 8 PORT BANANA / BNC (MAPPING AWAL 10-PORT)
+// [O]: D4(A1), SRC+(3V3+1k), D25(A2), SRC-(GND)
+// [N]: RX2/D16(B1), D21(C1), TX2/D17(B2)
+// [K]: D18(D1), D19(D2), D22(C2)
+// =============================================================================
+enum BananaPortIndex {
+    PORT_A1 = 0, // Indeks 0: GPIO 4  (Soket [O] Pin 1) -> Beban Lampu 1
+    PORT_A2,     // Indeks 1: GPIO 25 (Soket [O] Pin 3) -> Beban Lampu 1
+    PORT_B1,     // Indeks 2: GPIO 16 (Soket [N] Pin 1) -> Beban Lampu 2
+    PORT_B2,     // Indeks 3: GPIO 17 (Soket [N] Pin 3) -> Beban Lampu 2
+    PORT_C1,     // Indeks 4: GPIO 21 (Soket [N] Pin 2) -> Beban Lampu 3
+    PORT_C2,     // Indeks 5: GPIO 22 (Soket [K] Pin 3) -> Beban Lampu 3
+    PORT_D1,     // Indeks 6: GPIO 18 (Soket [K] Pin 1) -> Beban Lampu 4
+    PORT_D2,     // Indeks 7: GPIO 19 (Soket [K] Pin 2) -> Beban Lampu 4
+    PORT_COUNT = 8
+};
+
+// Pemetaan Pin GPIO ESP32 untuk 8 Port Banana (Urut Indeks 0..7)
+constexpr uint8_t BANANA_PINS[PORT_COUNT] = {
+    4,   // Index 0: PORT_A1 (D4  - Soket [O] Pin 1) -> Beban Lampu 1
+    25,  // Index 1: PORT_A2 (D25 - Soket [O] Pin 3) -> Beban Lampu 1
+    16,  // Index 2: PORT_B1 (RX2 - Soket [N] Pin 1) -> Beban Lampu 2
+    17,  // Index 3: PORT_B2 (TX2 - Soket [N] Pin 3) -> Beban Lampu 2
+    21,  // Index 4: PORT_C1 (D21 - Soket [N] Pin 2) -> Beban Lampu 3
+    22,  // Index 5: PORT_C2 (D22 - Soket [K] Pin 3) -> Beban Lampu 3
+    18,  // Index 6: PORT_D1 (D18 - Soket [K] Pin 1) -> Beban Lampu 4
+    19   // Index 7: PORT_D2 (D19 - Soket [K] Pin 2) -> Beban Lampu 4
+};
+
+// Output Kendali Motor Driver L298N (2x Dinamo DC 1-Arah, Soket J)
+constexpr uint8_t PIN_MOTOR_DRV   = 15; // Kendali Motor L298N IN1+IN3 (Eks SW_SENS)
 
 // Output Pencahayaan Miniatur
-constexpr uint8_t PIN_LPJ_ATAS_1  = 14; // LPJ Jalur Atas 1 (Terpicu IR 1)
-constexpr uint8_t PIN_LPJ_ATAS_2  = 27; // LPJ Jalur Atas 2 (Terpicu IR 2)
-constexpr uint8_t PIN_LPJ_SERI    = 26; // LPJ Jalur Bawah Seri (2 LED diparalel fisik)
-constexpr uint8_t PIN_LPJ_PAR_1   = 33; // LPJ Jalur Bawah Paralel 1 (Disesuaikan jalur solder)
-constexpr uint8_t PIN_LPJ_PAR_2   = 32; // LPJ Jalur Bawah Paralel 2 (Disesuaikan jalur solder)
+constexpr uint8_t PIN_LPJ_ATAS_1  = 14; // LPJ Jalur Atas 1 (Terpicu IR 1 Malam Hari)
+constexpr uint8_t PIN_LPJ_ATAS_2  = 27; // LPJ Jalur Atas 2 (Terpicu IR 2 Malam Hari)
+constexpr uint8_t PIN_LPJ_BWH_1   = 26; // LPJ Bawah 1 (Soket H - D26) - Pasangan A1 & A2
+constexpr uint8_t PIN_LPJ_BWH_2   = 12; // LPJ Bawah 2 (Soket M - D12) - Pasangan B1 & B2
+constexpr uint8_t PIN_LPJ_BWH_3   = 33; // LPJ Bawah 3 (Soket D Pin 3 - D33) - Pasangan C1 & C2
+constexpr uint8_t PIN_LPJ_BWH_4   = 32; // LPJ Bawah 4 (Soket D Pin 1 - D32) - Pasangan D1 & D2
 
-constexpr uint8_t PIN_HOUSE_1_2   = 18; // Lampu Rumah 1 & 2
-constexpr uint8_t PIN_HOUSE_3_4   = 19; // Lampu Rumah 3 & 4
+// Array Output 4 Lampu Jalan Miniatur Bawah (Urut Lampu 1..4)
+constexpr uint8_t LPJ_BWH_PINS[4] = {
+    PIN_LPJ_BWH_1,
+    PIN_LPJ_BWH_2,
+    PIN_LPJ_BWH_3,
+    PIN_LPJ_BWH_4
+};
+
+// Penerangan Pemukiman (4 LED Rumah digabung ke GPIO 2, Soket L)
+constexpr uint8_t PIN_HOUSE       = 2;  // Seluruh Lampu Rumah 1-4
 
 // Output Traffic Light VKS
 constexpr uint8_t PIN_TL_RED      = 23; // Traffic Light Merah
@@ -153,14 +193,40 @@ struct DebouncedInput {
     }
 };
 
-// Instance Debounce untuk Setiap Input Mekanik & Sensor Digital
-DebouncedInput btnBncSeri1;
-DebouncedInput btnBncSeri2;
-DebouncedInput btnBncPar1;
-DebouncedInput btnBncPar2;
-DebouncedInput btnToggleSens;
+// Instance Debounce untuk Sensor Digital IR
 DebouncedInput sensorIR1;
 DebouncedInput sensorIR2;
+
+// =============================================================================
+// STRUKTUR DATA & STATE SIMULATOR 10-PORT BANANA (BEBAN A s/d D)
+// =============================================================================
+constexpr uint8_t NODE_COUNT = 10;
+constexpr uint8_t NODE_VCC   = 8; // Indeks Node Sumber (+) 3.3V
+constexpr uint8_t NODE_GND   = 9; // Indeks Node Sumber (-) Ground
+
+struct DSU {
+    uint8_t parent[NODE_COUNT];
+    void init() {
+        for (uint8_t i = 0; i < NODE_COUNT; i++) parent[i] = i;
+    }
+    uint8_t find(uint8_t x) {
+        if (parent[x] == x) return x;
+        return parent[x] = find(parent[x]);
+    }
+    void unite(uint8_t a, uint8_t b) {
+        uint8_t rootA = find(a);
+        uint8_t rootB = find(b);
+        if (rootA != rootB) parent[rootB] = rootA;
+    }
+};
+
+// Status Global Simulator Rangkaian
+bool isSrcShortCircuited = false;       // Terdeteksi korslet langsung SRC+ ke SRC-
+uint8_t lpjBwhDuty[4]    = {0, 0, 0, 0}; // Nilai PWM Kecerahan 0..255 untuk Lampu 1..4
+uint8_t lpjBwhChain[4]   = {0, 0, 0, 0}; // Panjang rantai seri (1=Paralel, 2=2 Seri, dst)
+
+// Status & Kendali Motor Driver L298N (GPIO 15)
+bool isMotorActive = true; // Motor aktif berputar (dapat dikendalikan via MQTT / Serial)
 
 // Timer untuk Off-Delay Lampu LPJ Atas (menghindari lampu kedip saat bodi mobil lewat)
 unsigned long ir1ActiveTimer = 0;
@@ -228,14 +294,14 @@ void setupOTA() {
     ArduinoOTA.onStart([]() {
         String type = (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
         Serial.println("\n[OTA] Memulai transfer firmware Over-The-Air: " + type);
-        // Matikan semua output lampu saat proses flash agar aman dari lonjakan arus
+        // Matikan semua output lampu & motor saat proses flash agar aman dari lonjakan arus
         digitalWrite(PIN_LPJ_ATAS_1, LOW);
         digitalWrite(PIN_LPJ_ATAS_2, LOW);
-        digitalWrite(PIN_LPJ_SERI,   LOW);
-        digitalWrite(PIN_LPJ_PAR_1,  LOW);
-        digitalWrite(PIN_LPJ_PAR_2,  LOW);
-        digitalWrite(PIN_HOUSE_1_2,  LOW);
-        digitalWrite(PIN_HOUSE_3_4,  LOW);
+        for (uint8_t k = 0; k < 4; k++) {
+            analogWrite(LPJ_BWH_PINS[k], 0);
+        }
+        digitalWrite(PIN_HOUSE,      LOW);
+        digitalWrite(PIN_MOTOR_DRV,  LOW);
         setTrafficLight(false, false, false);
     });
 
@@ -279,42 +345,38 @@ void setup() {
     Serial.println("     FIRMWARE UTAMA SMART CITY ESP32 (DEBOUNCED & HYSTERESIS)   ");
     Serial.println("================================================================");
 
-    // 1. Inisialisasi Input Digital Ter-Debounce
+    // 1. Inisialisasi Input Digital Ter-Debounce & 8 Port Banana Simulator
     sensorIR1.init(PIN_IR1, INPUT);
     sensorIR2.init(PIN_IR2, INPUT);
 
-    btnBncSeri1.init(PIN_BNC_SERI_1, INPUT_PULLUP);
-    btnBncSeri2.init(PIN_BNC_SERI_2, INPUT_PULLUP);
-    btnBncPar1.init(PIN_BNC_PAR_1, INPUT_PULLUP);
-    btnBncPar2.init(PIN_BNC_PAR_2, INPUT_PULLUP);
-    btnToggleSens.init(PIN_SW_SENS, INPUT_PULLUP);
+    for (uint8_t i = 0; i < PORT_COUNT; i++) {
+        pinMode(BANANA_PINS[i], INPUT_PULLUP);
+    }
 
     // 2. Inisialisasi Input Analog
     pinMode(PIN_LDR, INPUT);
     pinMode(PIN_OPTO_SOLAR, INPUT);
 
-    // 3. Inisialisasi Output Lampu
+    // 3. Inisialisasi Output Lampu & Motor
     pinMode(PIN_LPJ_ATAS_1, OUTPUT);
     pinMode(PIN_LPJ_ATAS_2, OUTPUT);
-    pinMode(PIN_LPJ_SERI,   OUTPUT);
-    pinMode(PIN_LPJ_PAR_1,  OUTPUT);
-    pinMode(PIN_LPJ_PAR_2,  OUTPUT);
+    for (uint8_t k = 0; k < 4; k++) {
+        pinMode(LPJ_BWH_PINS[k], OUTPUT);
+        analogWrite(LPJ_BWH_PINS[k], 0);
+    }
 
-    pinMode(PIN_HOUSE_1_2,  OUTPUT);
-    pinMode(PIN_HOUSE_3_4,  OUTPUT);
+    pinMode(PIN_HOUSE,      OUTPUT);
+    pinMode(PIN_MOTOR_DRV,  OUTPUT);
 
     pinMode(PIN_TL_RED,     OUTPUT);
     pinMode(PIN_TL_YELLOW,  OUTPUT);
     pinMode(PIN_TL_GREEN,   OUTPUT);
 
-    // Pastikan seluruh lampu awal padam
+    // Pastikan seluruh lampu & motor awal padam/diam
     digitalWrite(PIN_LPJ_ATAS_1, LOW);
     digitalWrite(PIN_LPJ_ATAS_2, LOW);
-    digitalWrite(PIN_LPJ_SERI,   LOW);
-    digitalWrite(PIN_LPJ_PAR_1,  LOW);
-    digitalWrite(PIN_LPJ_PAR_2,  LOW);
-    digitalWrite(PIN_HOUSE_1_2,  LOW);
-    digitalWrite(PIN_HOUSE_3_4,  LOW);
+    digitalWrite(PIN_HOUSE,      LOW);
+    digitalWrite(PIN_MOTOR_DRV,  LOW);
     // Inisialisasi awal kondisi malam/siang & solar saat boot
     currentLdrState = digitalRead(PIN_LDR);
     isNight         = (currentLdrState == HIGH); // DO = HIGH (1) -> Malam
@@ -379,22 +441,20 @@ void updateSolarHysteresis(int rawSolar) {
 
 /**
  * 3. Penerangan Rumah (4 LED):
- *    Menyala otomatis pada malam hari HANYA JIKA otomasi sensor aktif (SW SENS = ON).
+ *    Menyala otomatis pada malam hari (LDR = HIGH / Gelap).
  */
 void updateHouseLights() {
-    bool houseOn = (isMasterSensorEnabled && isNight);
-    digitalWrite(PIN_HOUSE_1_2, houseOn ? HIGH : LOW);
-    digitalWrite(PIN_HOUSE_3_4, houseOn ? HIGH : LOW);
+    digitalWrite(PIN_HOUSE, isNight ? HIGH : LOW);
 }
 
 /**
  * 4. LPJ Jalur Atas (2 LED):
  *    Otomasi dengan Debouncing + Off-Delay (Hold Time 1 Detik).
- *    Hanya aktif saat saklar otomasi sensor ON (SW SENS = ON).
- *    Jika SW SENS = OFF, lampu dipadamkan secara aman.
+ *    Hanya aktif bersiaga jika malam hari (isNight == true).
+ *    Di siang hari, lampu PJU jalan raya dipadamkan aman.
  */
 void updateUpperStreetlights(unsigned long now) {
-    if (!isMasterSensorEnabled) {
+    if (!isNight) {
         digitalWrite(PIN_LPJ_ATAS_1, LOW);
         digitalWrite(PIN_LPJ_ATAS_2, LOW);
         ir1ActiveTimer = 0;
@@ -422,30 +482,165 @@ void updateUpperStreetlights(unsigned long now) {
 }
 
 /**
- * 5. LPJ Jalur Bawah (4 LED Simulator):
- *    Menggunakan nilai BNC dan Saklar Toggle yang sudah ter-debounce 35ms.
+ * Pencarian Rekursif Graf Rangkaian (DFS)
+ * Menelusuri seluruh jalur sederhana dari currentNet ke targetNet melalui lampu-lampu diorama.
+ */
+void searchCircuitPaths(uint8_t currentNet, uint8_t targetNet, uint8_t visitedLamps, uint8_t currentLength, 
+                        uint8_t netOfLamp[4][2], uint8_t minChain[4]) {
+    if (currentNet == targetNet) {
+        // Sirkuit tertutup dari VCC ke GND berhasil terbentuk!
+        for (uint8_t k = 0; k < 4; k++) {
+            if (visitedLamps & (1 << k)) {
+                if (currentLength < minChain[k]) {
+                    minChain[k] = currentLength;
+                }
+            }
+        }
+        return;
+    }
+
+    for (uint8_t k = 0; k < 4; k++) {
+        if (!(visitedLamps & (1 << k))) {
+            uint8_t nA = netOfLamp[k][0];
+            uint8_t nB = netOfLamp[k][1];
+
+            // Abaikan lampu yang terkorsleting (nA == 255)
+            if (nA == 255 || nB == 255) continue;
+
+            if (nA == currentNet) {
+                searchCircuitPaths(nB, targetNet, visitedLamps | (1 << k), currentLength + 1, netOfLamp, minChain);
+            } else if (nB == currentNet) {
+                searchCircuitPaths(nA, targetNet, visitedLamps | (1 << k), currentLength + 1, netOfLamp, minChain);
+            }
+        }
+    }
+}
+
+/**
+ * Pemindaian Matriks 8 Port Banana / BNC Secara Dinamis & Nodal Analisis
+ * Waktu eksekusi: ~250 us. 100% Proteksi Hardware: Hanya drive OUTPUT LOW atau INPUT_PULLUP/PULLDOWN.
+ */
+void scanBananaMatrix() {
+    DSU dsu;
+    dsu.init();
+
+    // 1. Uji koneksi langsung ke SRC (+) [3.3V] dan SRC (-) [GND] via Dual-Read (Pull-Up & Pull-Down)
+    for (uint8_t i = 0; i < PORT_COUNT; i++) {
+        pinMode(BANANA_PINS[i], INPUT_PULLUP);
+        delayMicroseconds(15);
+        int valPU = digitalRead(BANANA_PINS[i]);
+
+        pinMode(BANANA_PINS[i], INPUT_PULLDOWN);
+        delayMicroseconds(15);
+        int valPD = digitalRead(BANANA_PINS[i]);
+
+        // Kembalikan ke mode default aman
+        pinMode(BANANA_PINS[i], INPUT_PULLUP);
+
+        if (valPU == HIGH && valPD == HIGH) {
+            dsu.unite(i, NODE_VCC); // Terhubung ke SRC (+) 3.3V
+        } else if (valPU == LOW && valPD == LOW) {
+            dsu.unite(i, NODE_GND); // Terhubung ke SRC (-) GND
+        }
+    }
+
+    // 2. Uji jumper antar-port (Open-Drain LOW Scanning - Dilarang drive HIGH demi proteksi chip)
+    for (uint8_t i = 0; i < PORT_COUNT; i++) {
+        pinMode(BANANA_PINS[i], OUTPUT);
+        digitalWrite(BANANA_PINS[i], LOW);
+        delayMicroseconds(15);
+
+        for (uint8_t j = i + 1; j < PORT_COUNT; j++) {
+            if (digitalRead(BANANA_PINS[j]) == LOW) {
+                dsu.unite(i, j); // Port i dan j terhubung kabel jumper
+            }
+        }
+
+        // Kembalikan pin i ke INPUT_PULLUP
+        pinMode(BANANA_PINS[i], INPUT_PULLUP);
+        delayMicroseconds(10);
+    }
+
+    // 3. Deteksi Korslet Rel Utama (SRC+ dicolok langsung ke SRC-)
+    isSrcShortCircuited = (dsu.find(NODE_VCC) == dsu.find(NODE_GND));
+    if (isSrcShortCircuited) {
+        for (uint8_t k = 0; k < 4; k++) {
+            lpjBwhChain[k] = 0;
+            lpjBwhDuty[k]  = 0;
+        }
+        return;
+    }
+
+    // 4. Analisis Rangkaian Graf untuk 4 Beban Lampu Miniatur
+    uint8_t netVCC = dsu.find(NODE_VCC);
+    uint8_t netGND = dsu.find(NODE_GND);
+
+    uint8_t netOfLamp[4][2];
+    uint8_t minChain[4] = {255, 255, 255, 255};
+
+    for (uint8_t k = 0; k < 4; k++) {
+        uint8_t p1 = 2 * k;     // Terminal 1: A1, B1, C1, D1
+        uint8_t p2 = 2 * k + 1; // Terminal 2: A2, B2, C2, D2
+        netOfLamp[k][0] = dsu.find(p1);
+        netOfLamp[k][1] = dsu.find(p2);
+
+        // Jika kedua terminal lampu berada di net yang sama, lampu terkorslet sendiri (shorted load)
+        if (netOfLamp[k][0] == netOfLamp[k][1]) {
+            netOfLamp[k][0] = 255; // Tandai tidak dapat dilalui arus
+            netOfLamp[k][1] = 255;
+        }
+    }
+
+    // Jalankan DFS mencari rantai seri terpendek dari netVCC ke netGND
+    searchCircuitPaths(netVCC, netGND, 0, 0, netOfLamp, minChain);
+
+    // 5. Tentukan Kecerahan PWM & Panjang Rantai untuk Masing-Masing Lampu
+    for (uint8_t k = 0; k < 4; k++) {
+        if (minChain[k] == 1) {
+            lpjBwhChain[k] = 1;
+            lpjBwhDuty[k]  = 255; // 100% Kecerahan (Paralel Penuh / 1 Lampu Mandiri)
+        } else if (minChain[k] == 2) {
+            lpjBwhChain[k] = 2;
+            lpjBwhDuty[k]  = 128; // 50% Kecerahan (2 Lampu Seri)
+        } else if (minChain[k] == 3) {
+            lpjBwhChain[k] = 3;
+            lpjBwhDuty[k]  = 85;  // 33% Kecerahan (3 Lampu Seri)
+        } else if (minChain[k] == 4) {
+            lpjBwhChain[k] = 4;
+            lpjBwhDuty[k]  = 64;  // 25% Kecerahan (4 Lampu Seri)
+        } else {
+            lpjBwhChain[k] = 0;
+            lpjBwhDuty[k]  = 0;   // 0% (Padam: Rangkaian Putus / Terkorslet)
+        }
+    }
+}
+
+/**
+ * 5. LPJ Jalur Bawah (4 LED Simulator Rangkaian):
+ *    L1 (D26 / Beban A), L2 (D12 / Beban B), L3 (D33 / Beban C), L4 (D32 / Beban D).
+ *    Mendukung kecerahan bertingkat PWM sesuai hukum pembagi tegangan rangkaian seri/paralel.
  */
 void updateLowerStreetlights(unsigned long now) {
-    // Selalu perbarui pembacaan debounce seluruh kabel BNC
-    bool bncSeri1 = btnBncSeri1.isLow(now);
-    bool bncSeri2 = btnBncSeri2.isLow(now);
-    bool bncPar1  = btnBncPar1.isLow(now);
-    bool bncPar2  = btnBncPar2.isLow(now);
+    static unsigned long lastScanTime = 0;
 
-    if (isLowerStreetArmed) {
-        // Logika Seri Anti-Curang (BNC 1-2 dan BNC 3-4 KEDUNYA harus terpasang)
-        bool seriComplete = (bncSeri1 && bncSeri2);
-        digitalWrite(PIN_LPJ_SERI, seriComplete ? HIGH : LOW);
-
-        // Logika Paralel Mandiri
-        digitalWrite(PIN_LPJ_PAR_1, bncPar1 ? HIGH : LOW);
-        digitalWrite(PIN_LPJ_PAR_2, bncPar2 ? HIGH : LOW);
-    } else {
-        // Padamkan seluruh lampu jalan bawah jika siang atau saklar toggle OFF
-        digitalWrite(PIN_LPJ_SERI,  LOW);
-        digitalWrite(PIN_LPJ_PAR_1, LOW);
-        digitalWrite(PIN_LPJ_PAR_2, LOW);
+    // Pemindaian adaptif setiap 40 ms (responsif tanpa membebani CPU)
+    if (now - lastScanTime >= 40) {
+        lastScanTime = now;
+        scanBananaMatrix();
     }
+
+    // Terapkan output PWM ke 4 pin LPJ Bawah
+    for (uint8_t k = 0; k < 4; k++) {
+        uint8_t targetDuty = (isLowerStreetArmed && !isSrcShortCircuited) ? lpjBwhDuty[k] : 0;
+        analogWrite(LPJ_BWH_PINS[k], targetDuty);
+    }
+}
+
+/**
+ * 6. Kendali Motor Driver L298N (2x Dinamo DC 1-Arah, GPIO 15 / Soket J):
+ */
+void updateMotorDriver() {
+    digitalWrite(PIN_MOTOR_DRV, isMotorActive ? HIGH : LOW);
 }
 
 /**
@@ -504,18 +699,20 @@ void printTelemetry(unsigned long now, int ldrState, int rawSolar) {
             else if (tlState == TL_GREEN)  tlStr = "HIJAU ";
         }
 
-        Serial.printf("[CUACA] LDR_DO:%d (%-5s) | SOLAR:%4d (%-5s) | SW_SENS: %-3s || LPJ ATAS: [%d, %d] | LPJ BWH: [%s | P1:%d, P2:%d] | RUMAH: %-3s | TL: %-6s | IP: %s\n",
+        Serial.printf("[CUACA] LDR_DO:%d (%-5s) | SOLAR:%4d (%-5s) || LPJ ATAS: [%d, %d] | LPJ BWH (PWM): [L1:%3d, L2:%3d, L3:%3d, L4:%3d]%s | RUMAH: %-3s | MOTOR: %-3s | TL: %-6s | IP: %s\n",
                       ldrState,
                       isNight ? "MALAM" : "SIANG",
                       rawSolar,
                       isSolarDay ? "SURYA" : "PADAM",
-                      isMasterSensorEnabled ? "ON" : "OFF",
                       digitalRead(PIN_LPJ_ATAS_1) == HIGH ? 1 : 0,
                       digitalRead(PIN_LPJ_ATAS_2) == HIGH ? 1 : 0,
-                      digitalRead(PIN_LPJ_SERI) == HIGH ? "SERI:ON " : "SERI:OFF",
-                      digitalRead(PIN_LPJ_PAR_1) == HIGH ? 1 : 0,
-                      digitalRead(PIN_LPJ_PAR_2) == HIGH ? 1 : 0,
-                      digitalRead(PIN_HOUSE_1_2) == HIGH ? "ON " : "OFF",
+                      lpjBwhDuty[0],
+                      lpjBwhDuty[1],
+                      lpjBwhDuty[2],
+                      lpjBwhDuty[3],
+                      isSrcShortCircuited ? " [KORSLET SRC!]" : "",
+                      digitalRead(PIN_HOUSE) == HIGH ? "ON " : "OFF",
+                      digitalRead(PIN_MOTOR_DRV) == HIGH ? "ON " : "OFF",
                       tlStr,
                       (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString().c_str() : "OFFLINE");
     }
@@ -552,25 +749,31 @@ void publishTelemetry(unsigned long now, bool force = false) {
         doc["traffic"]["state"] = yellowBlinkState ? "BLINK" : "STANDBY";
     }
 
-    // 3. LPJ Jalur Atas (2 Tiang Lampu IR 24/7)
+    // 3. LPJ Jalur Atas (2 Tiang Lampu IR - Siaga Malam Hari)
     doc["street_upper"]["ir1"]  = sensorIR1.isLow(now);
     doc["street_upper"]["ir2"]  = sensorIR2.isLow(now);
     doc["street_upper"]["lpj1"] = (digitalRead(PIN_LPJ_ATAS_1) == HIGH);
     doc["street_upper"]["lpj2"] = (digitalRead(PIN_LPJ_ATAS_2) == HIGH);
 
-    // 4. LPJ Jalur Bawah (Simulator Seri Anti-Curang & Paralel)
-    doc["street_lower"]["armed"]     = isLowerStreetArmed;
-    doc["street_lower"]["bnc_seri1"] = btnBncSeri1.isLow(now);
-    doc["street_lower"]["bnc_seri2"] = btnBncSeri2.isLow(now);
-    doc["street_lower"]["lpj_seri"]  = (digitalRead(PIN_LPJ_SERI) == HIGH);
-    doc["street_lower"]["bnc_par1"]  = btnBncPar1.isLow(now);
-    doc["street_lower"]["bnc_par2"]  = btnBncPar2.isLow(now);
-    doc["street_lower"]["lpj_par1"]  = (digitalRead(PIN_LPJ_PAR_1) == HIGH);
-    doc["street_lower"]["lpj_par2"]  = (digitalRead(PIN_LPJ_PAR_2) == HIGH);
+    // 4. LPJ Jalur Bawah (4 Lampu Mandiri dengan Kecerahan PWM & Deteksi Korslet)
+    doc["street_lower"]["armed"]        = isLowerStreetArmed;
+    doc["street_lower"]["short_src"]    = isSrcShortCircuited;
+    doc["street_lower"]["lpj_bwh_1"]    = (lpjBwhDuty[0] > 0);
+    doc["street_lower"]["lpj_bwh_2"]    = (lpjBwhDuty[1] > 0);
+    doc["street_lower"]["lpj_bwh_3"]    = (lpjBwhDuty[2] > 0);
+    doc["street_lower"]["lpj_bwh_4"]    = (lpjBwhDuty[3] > 0);
+    doc["street_lower"]["duty_1"]       = lpjBwhDuty[0];
+    doc["street_lower"]["duty_2"]       = lpjBwhDuty[1];
+    doc["street_lower"]["duty_3"]       = lpjBwhDuty[2];
+    doc["street_lower"]["duty_4"]       = lpjBwhDuty[3];
+    doc["street_lower"]["chain_1"]      = lpjBwhChain[0];
+    doc["street_lower"]["chain_2"]      = lpjBwhChain[1];
+    doc["street_lower"]["chain_3"]      = lpjBwhChain[2];
+    doc["street_lower"]["chain_4"]      = lpjBwhChain[3];
 
-    // 5. Penerangan Pemukiman (Rumah 1 - 4)
-    doc["houses"]["house_1_2"] = (digitalRead(PIN_HOUSE_1_2) == HIGH);
-    doc["houses"]["house_3_4"] = (digitalRead(PIN_HOUSE_3_4) == HIGH);
+    // 5. Penerangan Pemukiman (Rumah 1 - 4) & Motor Driver L298N
+    doc["houses"]["house_all"] = (digitalRead(PIN_HOUSE) == HIGH);
+    doc["motor"]["active"]     = (digitalRead(PIN_MOTOR_DRV) == HIGH);
 
     // 6. Data Sistem
     doc["system"]["ip"]     = WiFi.localIP().toString();
@@ -616,26 +819,30 @@ void handleMQTT(unsigned long now) {
         // 1. Publikasi telemetri periodik (1 detik)
         publishTelemetry(now, false);
 
-        // 2. Publikasi instan jika ada transisi output lampu/sensor (Fast Response)
-        static int lastLpj1 = -1, lastLpj2 = -1, lastSeri = -1, lastP1 = -1, lastP2 = -1, lastH1 = -1;
-        static int lastTl = -1, lastNight = -1, lastSwSens = -1;
-        int curLpj1   = digitalRead(PIN_LPJ_ATAS_1);
-        int curLpj2   = digitalRead(PIN_LPJ_ATAS_2);
-        int curSeri   = digitalRead(PIN_LPJ_SERI);
-        int curP1     = digitalRead(PIN_LPJ_PAR_1);
-        int curP2     = digitalRead(PIN_LPJ_PAR_2);
-        int curH1     = digitalRead(PIN_HOUSE_1_2);
-        int curTl     = isSolarDay ? (int)tlState : (yellowBlinkState ? 99 : 98);
-        int curSwSens = isMasterSensorEnabled ? 1 : 0;
+        // 2. Publikasi instan jika ada transisi output lampu/sensor/PWM (Fast Response)
+        static int lastLpj1 = -1, lastLpj2 = -1;
+        static uint8_t lastDuty0 = 255, lastDuty1 = 255, lastDuty2 = 255, lastDuty3 = 255;
+        static bool lastShort = false;
+        static int lastHouse = -1, lastMotor = -1, lastTl = -1, lastNight = -1;
+        int curLpj1  = digitalRead(PIN_LPJ_ATAS_1);
+        int curLpj2  = digitalRead(PIN_LPJ_ATAS_2);
+        int curHouse = digitalRead(PIN_HOUSE);
+        int curMotor = digitalRead(PIN_MOTOR_DRV);
+        int curTl    = isSolarDay ? (int)tlState : (yellowBlinkState ? 99 : 98);
 
-        bool stateChanged = (curLpj1 != lastLpj1 || curLpj2 != lastLpj2 || curSeri != lastSeri ||
-                             curP1 != lastP1 || curP2 != lastP2 || curH1 != lastH1 ||
-                             curTl != lastTl || isNight != lastNight || curSwSens != lastSwSens);
+        bool stateChanged = (curLpj1 != lastLpj1 || curLpj2 != lastLpj2 ||
+                             lpjBwhDuty[0] != lastDuty0 || lpjBwhDuty[1] != lastDuty1 ||
+                             lpjBwhDuty[2] != lastDuty2 || lpjBwhDuty[3] != lastDuty3 ||
+                             isSrcShortCircuited != lastShort ||
+                             curHouse != lastHouse || curMotor != lastMotor || curTl != lastTl || isNight != lastNight);
 
         if (stateChanged && (now - lastMqttPublishTime >= MQTT_MIN_CHANGE_GAP)) {
-            lastLpj1 = curLpj1; lastLpj2 = curLpj2; lastSeri = curSeri;
-            lastP1 = curP1; lastP2 = curP2; lastH1 = curH1;
-            lastTl = curTl; lastNight = isNight; lastSwSens = curSwSens;
+            lastLpj1 = curLpj1; lastLpj2 = curLpj2;
+            lastDuty0 = lpjBwhDuty[0]; lastDuty1 = lpjBwhDuty[1];
+            lastDuty2 = lpjBwhDuty[2]; lastDuty3 = lpjBwhDuty[3];
+            lastShort = isSrcShortCircuited;
+            lastHouse = curHouse; lastMotor = curMotor;
+            lastTl = curTl; lastNight = isNight;
             publishTelemetry(now, true);
         }
     }
@@ -686,17 +893,17 @@ void loop() {
         updateSolarHysteresis(currentRawSolar);
     }
 
-    // 2. Sampling Saklar Toggle Master (Ter-Debounce)
-    isMasterSensorEnabled = btnToggleSens.isLow(now);
-
-    // Status Siap untuk LPJ Bawah
-    isLowerStreetArmed = (isNight && isMasterSensorEnabled);
+    // 2. Status Master Otomasi & LPJ Bawah
+    // Saklar toggle fisik memutus daya ke LDR: saat LDR mati, currentLdrState terbaca LOW (Siang)
+    isMasterSensorEnabled = isNight;
+    isLowerStreetArmed    = isNight;
 
     // 3. Eksekusi Seluruh Subsistem Diorama
     updateHouseLights();
     updateUpperStreetlights(now);
     updateLowerStreetlights(now);
     updateTrafficLight(now);
+    updateMotorDriver();
 
     // 4. Pelaporan Status ke Serial Monitor
     printTelemetry(now, currentLdrState, currentRawSolar);
