@@ -1,127 +1,158 @@
 # Pemetaan Pinout ESP32 (Smart City)
 
-Dokumen ini memuat pemetaan pin GPIO mikrokontroler **ESP32 Dev Module** (`esp32dev`) untuk seluruh modul sensor, lampu miniatur, simulator anti-curang, dan saklar kontrol, lengkap dengan panduan penyambungan (*wiring*) untuk skematik Fritzing.
+Dokumen ini memuat pemetaan pin GPIO mikrokontroler **ESP32 Dev Module** (`esp32dev`) untuk seluruh modul sensor, lampu miniatur, simulator adaptif 10-port, dan saklar kontrol, lengkap dengan panduan penyambungan (*wiring*) untuk skematik Fritzing.
+
+> Disinkronkan ke `src/main.cpp` (revisi 10-port BNC dan driver motor L298N, commit `e36c33c`) pada 9 Nov 2026. Kalau ada yang bertentangan, kode yang menang.
 
 ---
 
 ## 1. Tabel Alokasi Pin GPIO
 
-| Pin GPIO | Mode Pin | Komponen Terhubung | Arah Sinyal | Keterangan & Catatan Fritzing |
+### A. Sensor Masukan (Input-Only)
+
+| Pin GPIO | Mode Pin | Komponen Terhubung | Arah Sinyal | Keterangan |
 | :---: | :---: | :--- | :---: | :--- |
-| **GPIO 34** | `INPUT` | Sensor IR Proximity 1 | Masukan Digital | Input-Only pin, aktif 24/7 (Sinyal LOW saat mobil terdeteksi) |
-| **GPIO 35** | `INPUT` | Sensor IR Proximity 2 | Masukan Digital | Input-Only pin, aktif 24/7 (Sinyal LOW saat mobil terdeteksi) |
-| **GPIO 36 (VP)** | `ANALOG` | Sensor LDR | Masukan Analog | ADC1 Channel 0, mendeteksi siang/malam (Rangkaian pembagi tegangan R 10k) |
-| **GPIO 39 (VN)** | `INPUT` | Sinyal Solar (Optocoupler) | Masukan Digital | Input-Only pin, membaca daya panel surya via PC817 (LOW saat ada sinar) |
-| **GPIO 4** | `INPUT_PULLUP` | Sensing BNC Seri (Pasangan 1) | Masukan Digital | Lubang BNC 1-2. Terbaca LOW jika kabel BNC 1 terpasang ke GND |
-| **GPIO 25** | `INPUT_PULLUP` | Sensing BNC Seri (Pasangan 2) | Masukan Digital | Lubang BNC 3-4. Terbaca LOW jika kabel BNC 2 terpasang ke GND (**Anti-Curang**) |
-| **GPIO 16** | `INPUT_PULLUP` | Sensing BNC Paralel 1 | Masukan Digital | Lubang BNC Paralel 1 ke GND. Terbaca LOW saat kabel BNC terpasang |
-| **GPIO 17** | `INPUT_PULLUP` | Sensing BNC Paralel 2 | Masukan Digital | Lubang BNC Paralel 2 ke GND. Terbaca LOW saat kabel BNC terpasang |
-| **GPIO 15** | `INPUT_PULLUP` | Saklar Toggle Sensor | Masukan Digital | Saklar manual toggle ke GND untuk mengaktifkan/menonaktifkan otomasi sensor |
-| **GPIO 14** | `OUTPUT` | LPJ Jalur Atas 1 | Keluaran Digital | Terhubung ke Anoda LED via Resistor 100 Ohm (Terpicu IR 1) |
-| **GPIO 27** | `OUTPUT` | LPJ Jalur Atas 2 | Keluaran Digital | Terhubung ke Anoda LED via Resistor 100 Ohm (Terpicu IR 2) |
-| **GPIO 26** | `OUTPUT` | 2 LED LPJ Seri Kiri Bawah | Keluaran Digital | Mengontrol 2 LED Seri sekaligus (diparalel fisik, masing-masing R 100 Ohm) |
-| **GPIO 33** | `OUTPUT` | LPJ Kanan Bawah 1 | Keluaran Digital | Terhubung ke Anoda LED via Resistor 100 Ohm (Lampu Paralel 1) |
-| **GPIO 32** | `OUTPUT` | LPJ Kanan Bawah 2 | Keluaran Digital | Terhubung ke Anoda LED via Resistor 100 Ohm (Lampu Paralel 2) |
-| **GPIO 18** | `OUTPUT` | 2 LED Rumah (Rumah 1 & 2) | Keluaran Digital | Mengontrol Rumah 1 & 2 (diparalel fisik, masing-masing R 100 Ohm) |
-| **GPIO 19** | `OUTPUT` | 2 LED Rumah (Rumah 3 & 4) | Keluaran Digital | Mengontrol Rumah 3 & 4 (diparalel fisik, masing-masing R 100 Ohm) |
-| **GPIO 21** | *NC* | Bebas (*Reserved*) | - | Tidak terhubung (Tersedia untuk ekspansi masa depan) |
-| **GPIO 22** | *NC* | Bebas (*Reserved*) | - | Tidak terhubung (Tersedia untuk ekspansi masa depan) |
-| **GPIO 23** | `OUTPUT` | Traffic Light Merah | Keluaran Digital | Terhubung ke Pin R (Red) Modul VKS 5V |
-| **GPIO 5** | `OUTPUT` | Traffic Light Kuning | Keluaran Digital | Terhubung ke Pin Y (Yellow) Modul VKS 5V |
-| **GPIO 13** | `OUTPUT` | Traffic Light Hijau | Keluaran Digital | Terhubung ke Pin G (Green) Modul VKS 5V |
-| *Non-GPIO* | *Hardware* | Saklar Power Utama | Switch SPST | Memutus jalur baterai 2S (7.4V) sebelum masuk modul Step-Down 5V |
-| *Non-GPIO* | *Manual* | Dinamo Turbin Angin | Jalur Daya 5V | Motor DC Tamiya 130 + Saklar manual mekanik (bebas GPIO) |
+| **GPIO 34** | `INPUT` | Sensor IR Proximity 1 | Masukan Digital | Input-Only pin. Sinyal LOW saat mobil terdeteksi. Hanya bersiaga saat malam hari |
+| **GPIO 35** | `INPUT` | Sensor IR Proximity 2 | Masukan Digital | Input-Only pin. Sinyal LOW saat mobil terdeteksi. Hanya bersiaga saat malam hari |
+| **GPIO 36 (VP)** | `INPUT` | Modul Sensor LDR (LM393, Digital DO) | Masukan Digital | DO HIGH berarti malam (`isNight = true`), DO LOW berarti siang. VCC modul diputus saklar toggle seri, bukan lewat GPIO |
+| **GPIO 39 (VN)** | `INPUT` | Sinyal Solar (Optocoupler) | Masukan Digital | Input-Only pin, membaca daya panel surya via PC817 (LOW saat ada sinar). Ada filter histeresis anti-flicker |
+
+### B. Port Simulator BNC (8 Port Beban, I/O Dinamis)
+
+Port-port ini dipindai ESP32 tiap 40 ms. Saat pemindaian, tiap pin hanya di-drive ke `OUTPUT LOW` atau dibiarkan `INPUT`, tidak pernah di-drive `HIGH` (proteksi korslet). Tiap jalur memakai resistor seri 150 Ohm tepat di belakang soket BNC.
+
+| Pin GPIO | Port Panel | Pasangan Lampu | Soket JST | Keterangan |
+| :---: | :---: | :---: | :---: | :--- |
+| **GPIO 4** | A1 | Lampu 1 | Soket `[O]` Pin 1 | Kutub 1 Lampu 1 |
+| **GPIO 25** | A2 | Lampu 1 | Soket `[O]` Pin 3 | Kutub 2 Lampu 1 |
+| **GPIO 16** | B1 | Lampu 2 | Soket `[N]` Pin 1 (RX2) | Kutub 1 Lampu 2 |
+| **GPIO 17** | B2 | Lampu 2 | Soket `[N]` Pin 3 (TX2) | Kutub 2 Lampu 2 |
+| **GPIO 21** | C1 | Lampu 3 | Soket `[N]` Pin 2 | Kutub 1 Lampu 3 |
+| **GPIO 22** | C2 | Lampu 3 | Soket `[K]` Pin 3 | Kutub 2 Lampu 3 |
+| **GPIO 18** | D1 | Lampu 4 | Soket `[K]` Pin 1 | Kutub 1 Lampu 4 |
+| **GPIO 19** | D2 | Lampu 4 | Soket `[K]` Pin 2 | Kutub 2 Lampu 4 |
+
+Terminal sumber simulator: `SRC (+)` 3.3V lewat resistor 1 kOhm (Soket `[O]` Pin 2), `SRC (-)` GND (Soket `[O]` Pin 4).
+
+### C. Output Lampu dan Motor
+
+| Pin GPIO | Mode Pin | Komponen Terhubung | Soket JST | Keterangan |
+| :---: | :---: | :---: | :---: | :--- |
+| **GPIO 14** | `OUTPUT` | LPJ Jalur Atas 1 | Soket `[C]` Pin 1 | Terpicu IR 1, hanya malam hari. Resistor 100 Ohm |
+| **GPIO 27** | `OUTPUT` | LPJ Jalur Atas 2 | Soket `[C]` Pin 3 | Terpicu IR 2, hanya malam hari. Resistor 100 Ohm |
+| **GPIO 26** | `OUTPUT` (PWM) | LPJ Bawah 1 | Soket `[H]` | Lampu simulator 1, kecerahan PWM adaptif. Resistor 100 Ohm |
+| **GPIO 12** | `OUTPUT` (PWM) | LPJ Bawah 2 | Soket `[M]` | Lampu simulator 2, kecerahan PWM adaptif. Resistor 100 Ohm |
+| **GPIO 33** | `OUTPUT` (PWM) | LPJ Bawah 3 | Soket `[D]` Pin 3 | Lampu simulator 3, kecerahan PWM adaptif. Resistor 100 Ohm |
+| **GPIO 32** | `OUTPUT` (PWM) | LPJ Bawah 4 | Soket `[D]` Pin 1 | Lampu simulator 4, kecerahan PWM adaptif. Resistor 100 Ohm |
+| **GPIO 2** | `OUTPUT` | 4 LED Rumah (Rumah 1-4) | Soket `[L]` | Keempat LED diparalel fisik, masing-masing R 100 Ohm. Arus total sekitar 12 mA. Menyala saat malam hari |
+| **GPIO 15** | `OUTPUT` (PWM) | Driver Motor L298N (IN1+IN3) | Soket `[J]` | Kendali 2 kanal dinamo DC 1 arah. Default ON, bisa diatur via MQTT / Serial |
+| **GPIO 23** | `OUTPUT` | Traffic Light Merah | Soket `[P]` Pin 1 | Terhubung ke Pin R Modul VKS 5V |
+| **GPIO 5** | `OUTPUT` | Traffic Light Kuning | Soket `[P]` Pin 2 | Terhubung ke Pin Y Modul VKS 5V |
+| **GPIO 13** | `OUTPUT` | Traffic Light Hijau | Soket `[P]` Pin 3 | Terhubung ke Pin G Modul VKS 5V |
+
+### D. Bukan GPIO
+
+| Jalur | Fungsi |
+| :--- | :--- |
+| Saklar Power Utama (SPST) | Memutus jalur baterai 2S (7.4V) sebelum masuk modul Step-Down 5V |
+| Saklar Toggle Otomasi | Seri di jalur VCC 3.3V ke modul LDR (Soket `[I]`). OFF berarti LDR mati fisik dan sistem membaca siang |
+| Catu Daya Motor +5VS | Soket `[G]`, jalur +5V switched (saklar fisik kincir) ke modul driver L298N |
 
 ---
 
 ## 2. Catatan Keamanan Alokasi Pin
 
-1. **Bebas dari Masalah GPIO 2:**
-   - Tidak menggunakan `GPIO 2`, sehingga lampu LED biru bawaan ESP32 tidak terganggu dan proses upload firmware tetap lancar.
+1. **Pin Strapping (GPIO 2, GPIO 12, GPIO 15):**
+   - Ketiga pin ini dipakai untuk periferal internal yang statusnya terkontrol penuh saat *boot*: GPIO 2 untuk LED rumah, GPIO 12 untuk LPJ Bawah 2, GPIO 15 untuk driver motor L298N.
+   - Seluruh port eksternal BNC (A1 s/d D2) hanya dialokasikan pada pin GPIO non-strapping, supaya ESP32 tidak gagal *boot* kalau siswa menancapkan kabel sebelum alat dinyalakan. Detailnya ada di `docs/matriks_logika_8port_bnc.md` bagian 2.
 2. **Kesesuaian Fitur Khusus Pin:**
    - `GPIO 34`, `35`, `36`, dan `39` adalah pin **Input-Only** (tidak memiliki fungsi output fisik). Alokasi sensor IR Proximity, LDR, dan Optocoupler pada pin ini sangat tepat dan menghemat pin output.
-   - Sensor LDR dialokasikan pada **ADC1** (`GPIO 36`), sehingga tetap dapat membaca nilai analog secara akurat tanpa terganggu sekalipun fitur Wi-Fi ESP32 aktif di masa mendatang.
-3. **Internal Pull-Up:**
-   - Seluruh pin sensing simulator dan saklar toggle (`GPIO 4`, `GPIO 25`, `GPIO 16`, `GPIO 17`, `GPIO 15`) memanfaatkan resistor internal pull-up mikrokontroler (~45 kOhm), sehingga tidak memerlukan resistor pull-up eksternal.
+   - Sensor LDR sekarang memakai modul digital DO (LM393) di `GPIO 36`, bukan pembagi tegangan analog. Modul ini kebal interferensi Wi-Fi karena keluarannya digital.
+3. **Internal Pull-Up / Pull-Down:**
+   - Selama pemindaian matriks, pin port BNC dibaca dua kali (pull-up lalu pull-down) untuk membedakan port mengambang, port ke `SRC (+)`, dan port ke `SRC (-)`. Tidak ada resistor pull-up eksternal di jalur port.
+4. **Aturan Penggerak Pin (Wajib):**
+   - Pin port BNC tidak pernah di-drive `HIGH`. Hanya `OUTPUT LOW` atau `INPUT` yang diizinkan saat pemindaian. Kalau pin di-drive `HIGH` lalu siswa mencolokkannya ke `SRC (-)`, arus puluhan mA akan mengalir langsung ke chip.
+5. **Beban per Pin:**
+   - Tiap LED memakai resistor 100 Ohm, arusnya sekitar 3 mA per LED. Empat LED rumah di GPIO 2 totalnya sekitar 12 mA, masih di bawah batas aman per pin (12-20 mA).
 
 ---
 
 ## 3. Panduan Skema Wiring untuk Fritzing
 
-### A. Rangkaian Sensor LDR (Pembagi Tegangan)
-Jika menggunakan komponen LDR lepasan (2 kaki):
+### A. Modul Sensor LDR Digital (LM393)
+Modul LDR yang dipakai sekarang adalah modul komparator LM393 dengan output digital DO, bukan LDR lepasan dengan pembagi tegangan.
 ```text
-3.3V ESP32 ────[ Kaki 1 LDR ]
-                    │
-               [ Kaki 2 LDR ] ───┬─── Masuk ke GPIO 36 (VP) ESP32
-                                 │
-                         [ Resistor 10k Ohm ]
-                                 │
-                             GND ESP32
+3.3V ESP32 ────[ Saklar Toggle Seri ]──── VCC Modul LDR
+GND ESP32 ─────────────────────────────── GND Modul LDR
+GPIO 36 (VP) ESP32 ────────────────────── DO Modul LDR
+```
+* DO `HIGH` berarti gelap / malam hari. DO `LOW` berarti terang / siang hari.
+* Saklar toggle OFF berarti modul mati fisik, DO terbaca siang, dan seluruh otomasi lampu padam.
+
+### B. Simulator BNC 10-Port (Matriks Adaptif)
+Delapan port beban dan dua terminal sumber. Detail lengkap (algoritma baca ganda, analisis graf, tabel skenario) ada di `docs/matriks_logika_8port_bnc.md`.
+```text
+SRC (+) ───[ Resistor 1 kOhm ]─── Terminal SRC+ (Soket [O] Pin 2)
+SRC (-) ───────────────────────── Terminal SRC- (Soket [O] Pin 4, GND)
+
+A1 (GPIO 4) ───( Lampu 1 )─── A2 (GPIO 25)
+B1 (GPIO 16) ───( Lampu 2 )─── B2 (GPIO 17)
+C1 (GPIO 21) ───( Lampu 3 )─── C2 (GPIO 22)
+D1 (GPIO 18) ───( Lampu 4 )─── D2 (GPIO 19)
+```
+* Tiap jalur port memakai resistor seri 150 Ohm di belakang soket BNC.
+* Lampu simulator menyala sesuai rangkaian yang dirangkai siswa, dengan kecerahan PWM 100% / 50% / 33% / 25% untuk rantai 1 / 2 / 3 / 4 lampu.
+
+### C. Rangkaian 4 LED LPJ Jalur Bawah (Output Mandiri)
+Tiap lampu punya pin output sendiri, bukan lagi 2 LED yang diparalel dari satu pin.
+```text
+Pin GPIO 26 ───[ Resistor 100 Ohm ]───[ Anoda (+) LED LPJ Bawah 1 (-) ]─── GND
+Pin GPIO 12 ───[ Resistor 100 Ohm ]───[ Anoda (+) LED LPJ Bawah 2 (-) ]─── GND
+Pin GPIO 33 ───[ Resistor 100 Ohm ]───[ Anoda (+) LED LPJ Bawah 3 (-) ]─── GND
+Pin GPIO 32 ───[ Resistor 100 Ohm ]───[ Anoda (+) LED LPJ Bawah 4 (-) ]─── GND
 ```
 
-### B. Rangkaian Simulator BNC Seri (Sistem 2 Pasangan Anti-Curang)
-Mencegah kecurangan 1 kabel langsung dari lubang paling kiri ke paling kanan:
-* **Pasangan 1 (Kabel BNC Seri Kiri):**
-  `GND ESP32 ─────[ Lubang BNC 1 ] ───(Kabel A)─── [ Lubang BNC 2 ] ───── GPIO 4 ESP32`
-* **Pasangan 2 (Kabel BNC Seri Kanan):**
-  `GND ESP32 ─────[ Lubang BNC 3 ] ───(Kabel B)─── [ Lubang BNC 4 ] ───── GPIO 25 ESP32`
-* *Logika Program:* Lampu seri hanya menyala jika **GPIO 4 == LOW DAN GPIO 25 == LOW**. Jika dicolok silang atau hanya 1 kabel panjang, lampu seri tetap mati!
-
-### C. Rangkaian 2 LED LPJ Seri Kiri Bawah (Diparalel Fisik dari GPIO 26)
-```text
-                               ┌───[ Resistor 100 Ohm ]───[ Anoda (+) LED Seri 1 (-) ]───┐
-                               │                                                         │
-Pin GPIO 26 ESP32 ─────────────┤                                                         ├─── GND ESP32
-                               │                                                         │
-                               └───[ Resistor 100 Ohm ]───[ Anoda (+) LED Seri 2 (-) ]───┘
-```
-
-### D. Rangkaian Simulator BNC Paralel (2 Push Button / BNC Paralel)
-```text
-GND ESP32 ────┬────[ BNC / Tombol Paralel 1 ]──── GPIO 16 ESP32
-              │
-              └────[ BNC / Tombol Paralel 2 ]──── GPIO 17 ESP32
-```
-
-### E. Rangkaian Saklar Toggle Sensor ON/OFF
-```text
-GND ESP32 ────────[ Saklar Toggle SPST ]──────── GPIO 15 ESP32 (INPUT_PULLUP)
-```
-* Saklar ON (tertutup ke GND): GPIO 15 bernilai `LOW` -> Sensor aktif.
-* Saklar OFF (terbuka): GPIO 15 bernilai `HIGH` -> Sensor non-aktif / mode manual.
-
-### F. Rangkaian LED Rumah (2 LED per Pin GPIO)
-* **Rumah 1 & 2 (GPIO 18):**
+### D. Rangkaian LED Rumah (4 LED di Satu Pin GPIO 2)
 ```text
                        ┌───[ Resistor 100 Ohm ]───[ Anoda (+) LED Rumah 1 (-) ]───┐
                        │                                                          │
-Pin GPIO 18 ESP32 ─────┤                                                          ├─── GND ESP32
-                       │                                                          │
-                       └───[ Resistor 100 Ohm ]───[ Anoda (+) LED Rumah 2 (-) ]───┘
-```
-* **Rumah 3 & 4 (GPIO 19):**
-```text
-                       ┌───[ Resistor 100 Ohm ]───[ Anoda (+) LED Rumah 3 (-) ]───┐
-                       │                                                          │
-Pin GPIO 19 ESP32 ─────┤                                                          ├─── GND ESP32
+                       ├───[ Resistor 100 Ohm ]───[ Anoda (+) LED Rumah 2 (-) ]───┤
+Pin GPIO 2 ESP32 ──────┤                                                          ├─── GND ESP32
+                       ├───[ Resistor 100 Ohm ]───[ Anoda (+) LED Rumah 3 (-) ]───┤
                        │                                                          │
                        └───[ Resistor 100 Ohm ]───[ Anoda (+) LED Rumah 4 (-) ]───┘
 ```
 
-### G. Rangkaian LPJ Lainnya (4 Unit LED Tunggal)
-Untuk 2 LPJ Jalur Atas (GPIO 14, GPIO 27) dan 2 LPJ Kanan Bawah (GPIO 32, GPIO 33):
+### E. Rangkaian LPJ Jalur Atas (2 Unit LED Tunggal)
 ```text
-Pin GPIO Terkait ───[ Resistor 100 Ohm ]───[ Anoda (+) LED (-) Katoda ]─── GND ESP32
+Pin GPIO 14 ───[ Resistor 100 Ohm ]───[ Anoda (+) LED LPJ Atas 1 (-) ]─── GND ESP32
+Pin GPIO 27 ───[ Resistor 100 Ohm ]───[ Anoda (+) LED LPJ Atas 2 (-) ]─── GND ESP32
 ```
+* Kedua lampu hanya bersiaga saat malam hari dan dipicu sensor IR masing-masing, dengan off-delay 1 detik.
 
-### G. Rangkaian Sensor IR Proximity (2 Unit)
+### F. Rangkaian Driver Motor L298N
+```text
+GPIO 15 ESP32 ───────────────────── IN1 + IN3 Modul L298N (Soket [J] Pin 1)
+GND ESP32 ───────────────────────── GND Modul L298N (Soket [J] Pin 2)
++5V Switched ────────────────────── Catu daya motor modul L298N (Soket [G])
+```
+* GPIO 15 mengendalikan 2 kanal dinamo DC 1 arah sekaligus (ON/OFF dan PWM). Default motor aktif, bisa diubah lewat MQTT / Serial.
+
+### G. Rangkaian Saklar Toggle Otomasi (Seri VCC LDR)
+```text
+3.3V ESP32 ────────[ Saklar Toggle SPST ]──────── VCC Modul LDR (Soket [I] Pin 1)
+DO Modul LDR ──────────────────────────────────── GPIO 36 ESP32 (Soket [I] Pin 2)
+```
+* Saklar ON: modul LDR mendapat daya, sistem membaca siang/malam dari DO.
+* Saklar OFF: modul mati fisik, sistem membaca siang, seluruh otomasi lampu padam.
+
+### H. Rangkaian Sensor IR Proximity (2 Unit)
 * **VCC:** Ke pin **3.3V** atau **5V** ESP32
 * **GND:** Ke pin **GND** ESP32
 * **OUT Sensor 1:** Ke pin **GPIO 34**
 * **OUT Sensor 2:** Ke pin **GPIO 35**
 
-### H. Rangkaian Traffic Light VKS & Optocoupler PC817
+### I. Rangkaian Traffic Light VKS & Optocoupler PC817
 1. **Modul Traffic Light VKS 5V:**
    * **Pin R (Merah):** Ke pin **GPIO 23**
    * **Pin Y (Kuning):** Ke pin **GPIO 5**

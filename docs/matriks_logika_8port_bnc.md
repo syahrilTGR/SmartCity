@@ -82,26 +82,15 @@ Karena port BNC dapat dipegang langsung oleh siswa dan dihubungkan ke mana saja,
 
 ## 4. Deteksi Hubung Singkat / Korslet Sumber Daya (`SRC+` ke `SRC-`)
 
-Terminal `SRC (+)` dihubungkan ke resistor pembatas 1 kOhm, dan **titik setelah resistor dimonitor langsung oleh pin `GPIO 23`**:
+Terminal `SRC (+)` dilindungi resistor pembatas 1 kOhm, jadi arus maksimal saat korslet langsung ke `SRC (-)` hanyalah `3.3V / 1000 Ohm = 3.3 mA`.
 
-```text
-Rel 3.3V ESP32 ───[ Resistor 1 kOhm ]───┬─── [ Port Panel SRC (+) ]
-                                        │
-                                        └─── Masuk ke GPIO 23 (Sense SRC+)
-```
-
-### Logika Deteksi Korslet:
-1. **Kondisi Normal (Beban Terpasang Wajar atau Port Terbuka):**
-   * Arus beban logika sangat kecil (mikroampere).
-   * Tegangan di titik monitor tetap mendekati 3.3V.
-   * Pin `GPIO 23` membaca logika **`HIGH` (1)**.
-2. **Kondisi Korslet Langsung (`SRC+` dicolok langsung ke `SRC-`):**
-   * Arus 3.3 mA mengalir penuh ke GND.
-   * Seluruh tegangan jatuh di resistor 1 kOhm, sehingga tegangan di titik monitor drop menjadi **0.0 Volt**.
-   * Pin `GPIO 23` membaca logika **`LOW` (0)**.
+### Logika Deteksi Korslet (Sesuai `src/main.cpp`, `scanBananaMatrix()`):
+Deteksi tidak memakai pin sense terpisah. GPIO 23 sudah dipakai sebagai output Traffic Light Merah, jadi tidak bisa merangkap jadi pin sense. Sebagai gantinya, korslet dikenali dari hasil pemindaian graf:
+1. **Kondisi Normal:** `SRC+` (Net VCC) dan `SRC-` (Net GND) berada di simpul yang berbeda.
+2. **Kondisi Korslet Langsung (`SRC+` dicolok langsung ke `SRC-`):** pemindaian Union-Find menggabungkan kedua terminal ke satu net yang sama, `dsu.find(NODE_VCC) == dsu.find(NODE_GND)`, dan flag `isSrcShortCircuited` menjadi `true`.
 3. **Respon Sistem:**
-   * ESP32 seketika mendeteksi: `digitalRead(PIN_SENSE_SRC_PLUS) == LOW`.
-   * Sistem langsung memadamkan seluruh 4 lampu jalan bawah, menghentikan proses pemindaian sementara, dan menyalakan indikator bahaya di Web Dashboard / Serial Monitor:  
+   * Keempat lampu jalan bawah langsung dipadamkan (`lpjBwhDuty[k] = 0`).
+   * Sistem memberi peringatan di Web Dashboard / Serial Monitor:
      `"[WARNING] Hubung singkat terdeteksi antara SRC+ dan SRC-! Periksa perkabelan."`
 
 ---

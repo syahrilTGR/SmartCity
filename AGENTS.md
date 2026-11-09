@@ -22,14 +22,15 @@ pio run -t upload            # Upload ke ESP32
 pio device monitor           # Serial monitor (115200 baud)
 ```
 
-## Arsitektur Singkat
-1. **Penerangan Rumah (4 LED):** GPIO 18 (Rumah 1 & 2) & GPIO 19 (Rumah 3 & 4) — masing-masing 2 LED diparalel fisik (Resistor 100 Ohm).
-2. **LPJ Jalur Atas (2 LED):** GPIO 14, 27 — dipicu mandiri 24/7 oleh IR Proximity 1 (GPIO 34) & IR Proximity 2 (GPIO 35).
-3. **LPJ Jalur Bawah (4 LED):** 
-   - Master Enable: LDR (GPIO 36 / VP, aktif malam hari) & Saklar Toggle Sensor (GPIO 15, `INPUT_PULLUP`).
-   - Seri Anti-Curang (2 LED di GPIO 26 diparalel fisik): Dipicu ganda oleh loop BNC 1-2 pada GPIO 4 dan loop BNC 3-4 pada GPIO 25 (`INPUT_PULLUP`).
-   - Paralel (2 LED: GPIO 33, 32): Dipicu oleh sensing BNC cabang 1 pada GPIO 16 dan cabang 2 pada GPIO 17 (`INPUT_PULLUP`).
-4. **Dummy Turbin Angin:** Dinamo Tamiya 5V + Saklar fisik manual (tanpa GPIO, proteksi Dioda 1N4007 & Kapasitor 470 uF).
-5. **Traffic Light VKS:** GPIO 23 (R), GPIO 5 (Y), GPIO 13 (G) — dipantau sinyal daya solar via Optocoupler PC817 pada GPIO 39 (VN).
+## Arsitektur Singkat (Revisi 10-Port BNC & Motor Driver L298N, 9 Nov 2026)
+1. **Penerangan Rumah (4 LED):** GPIO 2 (Soket [L]), keempat LED digabung, masing-masing R 100 Ohm, total sekitar 12 mA. Menyala saat malam hari (`isNight == true`).
+2. **LPJ Jalur Atas (2 LED):** GPIO 14, 27, dipicu mandiri oleh IR Proximity 1 (GPIO 34) & IR Proximity 2 (GPIO 35), hanya bersiaga saat malam hari, off-delay 1 detik.
+3. **LPJ Jalur Bawah (4 LED, Simulator Adaptif 10-Port):**
+   - Master Enable: malam hari saja (`isLowerStreetArmed == isNight`). Saklar toggle bukan lagi pin GPIO, melainkan pemutus seri jalur 3.3V ke modul LDR (Soket [I]).
+   - 8 port beban A1-D2 (GPIO 4, 25, 16, 17, 21, 22, 18, 19) dipindai tiap 40 ms (baca ganda pull-up/pull-down, analisis graf Union-Find + DFS). Kecerahan PWM mengikuti rantai seri: 1 lampu 100%, 2 lampu 50%, 3 lampu 33%, 4 lampu 25%.
+   - Output lampu: Lampu 1 GPIO 26 (Soket [H]), Lampu 2 GPIO 12 (Soket [M]), Lampu 3 GPIO 33 (Soket [D] Pin 3), Lampu 4 GPIO 32 (Soket [D] Pin 1).
+   - Deteksi korslet SRC+ ke SRC- murni dari analisis graf (kedua net jadi satu), bukan dari pin sense terpisah. Semua lampu bawah padam saat korslet.
+4. **Driver Motor L298N (2x Dinamo DC 1-Arah):** GPIO 15 (Soket [J]) mengendalikan IN1+IN3. Default ON, bisa diatur via MQTT / Serial. Catu daya motor +5V switched lewat Soket [G].
+5. **Traffic Light VKS:** GPIO 23 (R), GPIO 5 (Y), GPIO 13 (G), dipantau sinyal daya solar via Optocoupler PC817 pada GPIO 39 (VN).
 6. **Catu Daya:** Baterai 18650 2S (7.4V) + BMS 2S -> Saklar Master -> Modul Step-Down 5V (MP1584EN).
 
