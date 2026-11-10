@@ -524,33 +524,55 @@ void scanBananaMatrix() {
     DSU dsu;
     dsu.init();
 
-    // 1. Uji koneksi langsung ke SRC (+) [3.3V] dan SRC (-) [GND] via Dual-Read (Pull-Up & Pull-Down)
+    // 1. Uji koneksi langsung ke SRC (+) [3.3V] dan SRC (-) [GND] via Synchronous Dual-Read
+    //    KRUSIAL: Seluruh 8 port wajib di-set ke INPUT_PULLUP secara serempak, lalu
+    //    di-set ke INPUT_PULLDOWN secara serempak agar port pasangan jumper tidak saling
+    //    menarik tegangan (cross-pulling) dan salah terbaca sebagai VCC!
+    uint8_t valPU[PORT_COUNT];
+    uint8_t valPD[PORT_COUNT];
+
     for (uint8_t i = 0; i < PORT_COUNT; i++) {
         pinMode(BANANA_PINS[i], INPUT_PULLUP);
-        delayMicroseconds(15);
-        int valPU = digitalRead(BANANA_PINS[i]);
+    }
+    delayMicroseconds(30);
+    for (uint8_t i = 0; i < PORT_COUNT; i++) {
+        valPU[i] = digitalRead(BANANA_PINS[i]);
+    }
 
+    for (uint8_t i = 0; i < PORT_COUNT; i++) {
         pinMode(BANANA_PINS[i], INPUT_PULLDOWN);
-        delayMicroseconds(15);
-        int valPD = digitalRead(BANANA_PINS[i]);
+    }
+    delayMicroseconds(30);
+    for (uint8_t i = 0; i < PORT_COUNT; i++) {
+        valPD[i] = digitalRead(BANANA_PINS[i]);
+    }
 
-        // Kembalikan ke mode default aman
+    // Kembalikan ke mode default INPUT_PULLUP & evaluasi koneksi ke SRC(+) / SRC(-)
+    for (uint8_t i = 0; i < PORT_COUNT; i++) {
         pinMode(BANANA_PINS[i], INPUT_PULLUP);
-
-        if (valPU == HIGH && valPD == HIGH) {
+        if (valPU[i] == HIGH && valPD[i] == HIGH) {
             dsu.unite(i, NODE_VCC); // Terhubung ke SRC (+) 3.3V
-        } else if (valPU == LOW && valPD == LOW) {
+        } else if (valPU[i] == LOW && valPD[i] == LOW) {
             dsu.unite(i, NODE_GND); // Terhubung ke SRC (-) GND
         }
     }
+    delayMicroseconds(30);
 
-    // 2. Uji jumper antar-port (Open-Drain LOW Scanning - Dilarang drive HIGH demi proteksi chip)
+    uint8_t rootVCC = dsu.find(NODE_VCC);
+    uint8_t rootGND = dsu.find(NODE_GND);
+
+    // 2. Uji jumper antar-port yang mengambang (Floating Intermediate Jumpers)
+    // HANYA uji pin yang TIDAK terhubung ke GND atau VCC untuk menghindari false LOW dari rel Ground
     for (uint8_t i = 0; i < PORT_COUNT; i++) {
+        if (dsu.find(i) == rootVCC || dsu.find(i) == rootGND) continue;
+
         pinMode(BANANA_PINS[i], OUTPUT);
         digitalWrite(BANANA_PINS[i], LOW);
-        delayMicroseconds(15);
+        delayMicroseconds(30);
 
         for (uint8_t j = i + 1; j < PORT_COUNT; j++) {
+            if (dsu.find(j) == rootVCC || dsu.find(j) == rootGND) continue;
+
             if (digitalRead(BANANA_PINS[j]) == LOW) {
                 dsu.unite(i, j); // Port i dan j terhubung kabel jumper
             }
@@ -558,7 +580,7 @@ void scanBananaMatrix() {
 
         // Kembalikan pin i ke INPUT_PULLUP
         pinMode(BANANA_PINS[i], INPUT_PULLUP);
-        delayMicroseconds(10);
+        delayMicroseconds(30);
     }
 
     // 3. Deteksi Korslet Rel Utama (SRC+ dicolok langsung ke SRC-)
