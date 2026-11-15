@@ -18,14 +18,14 @@
  * 3. LPJ Jalur Bawah (4 Tiang Lampu Mandiri Simulator BNC):
  *    - Lampu 1 (GPIO 26 / Soket H), Lampu 2 (GPIO 12 / Soket M).
  *    - Lampu 3 (GPIO 33 / Soket D Pin 3), Lampu 4 (GPIO 32 / Soket D Pin 1).
- *    - Aktif saat malam hari (isNight == true) sesuai koneksi kabel BNC siswa.
+ *    - Selalu aktif (siang maupun malam) sesuai koneksi kabel BNC siswa.
  *
  * 4. Motor Driver L298N (2x Dinamo DC 1-Arah):
- *    - GPIO 15 (Soket J): Output kendali motor IN1 + IN3 L298N (dapat diatur ON/OFF & PWM).
+ *    - GPIO 15 (Soket J): Output kendali motor IN1 + IN3 L298N (Starter 100% 300 ms -> Level 4 / 80%).
  *
  * 5. Master Switch Otomasi Sensor:
- *    - Saklar toggle fisik dipasang seri memutus jalur 3.3V ke Modul LDR (Soket I).
- *    - Saat OFF: LDR mati fisik -> terbaca Siang -> seluruh otomasi lampu padam seketika.
+ *    - Saklar toggle fisik dipasang seri memutus jalur GND ke Modul LDR (Soket I).
+ *    - Saat OFF: GND LDR terputus -> DO tertarik HIGH (3.3V) -> Lampu Rumah & LPJ Atas masuk mode mainan (ON).
  *
  * 6. Lampu Lalu Lintas Cerdas Tenaga Surya (Traffic Light VKS 5V):
  *    - Sensor Surya: Optocoupler PC817 pada GPIO 39 (dengan histeresis anti-flicker).
@@ -225,8 +225,21 @@ bool isSrcShortCircuited = false;       // Terdeteksi korslet langsung SRC+ ke S
 uint8_t lpjBwhDuty[4]    = {0, 0, 0, 0}; // Nilai PWM Kecerahan 0..255 untuk Lampu 1..4
 uint8_t lpjBwhChain[4]   = {0, 0, 0, 0}; // Panjang rantai seri (1=Paralel, 2=2 Seri, dst)
 
-// Status & Kendali Motor Driver L298N (GPIO 15)
+// Status & Kendali Motor Driver L298N (GPIO 15 / Soket J)
 bool isMotorActive = true; // Motor aktif berputar (dapat dikendalikan via MQTT / Serial)
+constexpr uint8_t MOTOR_SPEED_KICKSTART             = 255; // Level 5 (100% PWM Starter Awal)
+constexpr uint8_t MOTOR_SPEED_RUN                   = 204; // Level 4 (80% PWM Kecepatan Operasional)
+constexpr unsigned long MOTOR_KICKSTART_DURATION_MS = 300; // Durasi semburan starter 300 ms
+
+enum MotorState {
+    MOTOR_STATE_OFF = 0,
+    MOTOR_STATE_KICKSTART,
+    MOTOR_STATE_RUNNING
+};
+
+MotorState motorState = MOTOR_STATE_OFF;
+unsigned long motorKickStartTime = 0;
+uint8_t motorCurrentDuty = 0;
 
 // Timer untuk Off-Delay Lampu LPJ Atas (menghindari lampu kedip saat bodi mobil lewat)
 unsigned long ir1ActiveTimer = 0;
@@ -301,7 +314,7 @@ void setupOTA() {
             analogWrite(LPJ_BWH_PINS[k], 0);
         }
         digitalWrite(PIN_HOUSE,      LOW);
-        digitalWrite(PIN_MOTOR_DRV,  LOW);
+        analogWrite(PIN_MOTOR_DRV,   0);
         setTrafficLight(false, false, false);
     });
 
@@ -367,6 +380,7 @@ void setup() {
 
     pinMode(PIN_HOUSE,      OUTPUT);
     pinMode(PIN_MOTOR_DRV,  OUTPUT);
+    analogWrite(PIN_MOTOR_DRV, 0);
 
     pinMode(PIN_TL_RED,     OUTPUT);
     pinMode(PIN_TL_YELLOW,  OUTPUT);
@@ -376,7 +390,6 @@ void setup() {
     digitalWrite(PIN_LPJ_ATAS_1, LOW);
     digitalWrite(PIN_LPJ_ATAS_2, LOW);
     digitalWrite(PIN_HOUSE,      LOW);
-    digitalWrite(PIN_MOTOR_DRV,  LOW);
     // Inisialisasi awal kondisi malam/siang & solar saat boot
     currentLdrState = digitalRead(PIN_LDR);
     isNight         = (currentLdrState == HIGH); // DO = HIGH (1) -> Malam
@@ -660,9 +673,34 @@ void updateLowerStreetlights(unsigned long now) {
 
 /**
  * 6. Kendali Motor Driver L298N (2x Dinamo DC 1-Arah, GPIO 15 / Soket J):
+ *    Logika Starter Cerdas: Saat pertama kali menyala / diaktifkan, motor diberi dorongan
+ *    kecepatan Speed 5 (PWM 255) selama 300 ms untuk mengatasi inersia/torsi awal,
+ *    kemudian otomatis diturunkan ke Level 4 (PWM 204, 80%) untuk operasi stabil & hemat daya.
  */
-void updateMotorDriver() {
-    digitalWrite(PIN_MOTOR_DRV, isMotorActive ? HIGH : LOW);
+void updateMotorDriver(unsigned long now) {
+    if (!isMotorActive) {
+        if (motorState != MOTOR_STATE_OFF) {
+            motorState = MOTOR_STATE_OFF;
+            motorCurrentDuty = 0;
+            analogWrite(PIN_MOTOR_DRV, 0);
+        }
+        return;
+    }
+
+    if (motorState == MOTOR_STATE_OFF) {
+        // Mulai starter awal di Speed 5 (PWM 255)
+        motorState = MOTOR_STATE_KICKSTART;
+        motorKickStartTime = now;
+        motorCurrentDuty = MOTOR_SPEED_KICKSTART;
+        analogWrite(PIN_MOTOR_DRV, motorCurrentDuty);
+    } else if (motorState == MOTOR_STATE_KICKSTART) {
+        // Tahan selama durasi kickstart, lalu turunkan ke Level 4 (PWM 204)
+        if (now - motorKickStartTime >= MOTOR_KICKSTART_DURATION_MS) {
+            motorState = MOTOR_STATE_RUNNING;
+            motorCurrentDuty = MOTOR_SPEED_RUN;
+            analogWrite(PIN_MOTOR_DRV, motorCurrentDuty);
+        }
+    }
 }
 
 /**
@@ -721,7 +759,9 @@ void printTelemetry(unsigned long now, int ldrState, int rawSolar) {
             else if (tlState == TL_GREEN)  tlStr = "HIJAU ";
         }
 
-        Serial.printf("[CUACA] LDR_DO:%d (%-5s) | SOLAR:%4d (%-5s) || LPJ ATAS: [%d, %d] | LPJ BWH (PWM): [L1:%3d, L2:%3d, L3:%3d, L4:%3d]%s | RUMAH: %-3s | MOTOR: %-3s | TL: %-6s | IP: %s\n",
+        const char* motorStr = (motorCurrentDuty == 0) ? "OFF   " : ((motorState == MOTOR_STATE_KICKSTART) ? "STR(5)" : "LVL(4)");
+
+        Serial.printf("[CUACA] LDR_DO:%d (%-5s) | SOLAR:%4d (%-5s) || LPJ ATAS: [%d, %d] | LPJ BWH (PWM): [L1:%3d, L2:%3d, L3:%3d, L4:%3d]%s | RUMAH: %-3s | MOTOR: %-6s | TL: %-6s | IP: %s\n",
                       ldrState,
                       isNight ? "MALAM" : "SIANG",
                       rawSolar,
@@ -734,7 +774,7 @@ void printTelemetry(unsigned long now, int ldrState, int rawSolar) {
                       lpjBwhDuty[3],
                       isSrcShortCircuited ? " [KORSLET SRC!]" : "",
                       digitalRead(PIN_HOUSE) == HIGH ? "ON " : "OFF",
-                      digitalRead(PIN_MOTOR_DRV) == HIGH ? "ON " : "OFF",
+                      motorStr,
                       tlStr,
                       (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString().c_str() : "OFFLINE");
     }
@@ -795,7 +835,9 @@ void publishTelemetry(unsigned long now, bool force = false) {
 
     // 5. Penerangan Pemukiman (Rumah 1 - 4) & Motor Driver L298N
     doc["houses"]["house_all"] = (digitalRead(PIN_HOUSE) == HIGH);
-    doc["motor"]["active"]     = (digitalRead(PIN_MOTOR_DRV) == HIGH);
+    doc["motor"]["active"]     = (motorCurrentDuty > 0);
+    doc["motor"]["state"]      = (motorState == MOTOR_STATE_OFF) ? "off" : ((motorState == MOTOR_STATE_KICKSTART) ? "starter" : "running");
+    doc["motor"]["duty"]       = motorCurrentDuty;
 
     // 6. Data Sistem
     doc["system"]["ip"]     = WiFi.localIP().toString();
@@ -849,7 +891,7 @@ void handleMQTT(unsigned long now) {
         int curLpj1  = digitalRead(PIN_LPJ_ATAS_1);
         int curLpj2  = digitalRead(PIN_LPJ_ATAS_2);
         int curHouse = digitalRead(PIN_HOUSE);
-        int curMotor = digitalRead(PIN_MOTOR_DRV);
+        int curMotor = (int)motorCurrentDuty;
         int curTl    = isSolarDay ? (int)tlState : (yellowBlinkState ? 99 : 98);
 
         bool stateChanged = (curLpj1 != lastLpj1 || curLpj2 != lastLpj2 ||
@@ -893,6 +935,7 @@ void loop() {
     }
 
     // Reset Wi-Fi via Serial Monitor (Ketik huruf 'r' lalu Enter untuk ganti router)
+    // Toggle Motor via Serial Monitor (Ketik huruf 'm' lalu Enter untuk tes starter dinamo)
     if (Serial.available()) {
         char c = Serial.read();
         if (c == 'r' || c == 'R') {
@@ -901,6 +944,9 @@ void loop() {
             wm.resetSettings();
             delay(1000);
             ESP.restart();
+        } else if (c == 'm' || c == 'M') {
+            isMotorActive = !isMotorActive;
+            Serial.printf("\n[MOTOR] Kendali motor di-toggle: %s\n", isMotorActive ? "AKTIF (Starter Speed 5 -> Level 4)" : "MATI");
         }
     }
 
@@ -916,16 +962,17 @@ void loop() {
     }
 
     // 2. Status Master Otomasi & LPJ Bawah
-    // Saklar toggle fisik memutus daya ke LDR: saat LDR mati, currentLdrState terbaca LOW (Siang)
+    // Saklar toggle memutus jalur GND LDR: saat OFF, DO tertarik HIGH -> Lampu Rumah & LPJ Atas aktif (mode mainan)
+    // Simulator BNC LPJ Bawah selalu aktif (siang maupun malam) agar mudah diuji/dimainkan kapan saja
     isMasterSensorEnabled = isNight;
-    isLowerStreetArmed    = isNight;
+    isLowerStreetArmed    = true;
 
     // 3. Eksekusi Seluruh Subsistem Diorama
     updateHouseLights();
     updateUpperStreetlights(now);
     updateLowerStreetlights(now);
     updateTrafficLight(now);
-    updateMotorDriver();
+    updateMotorDriver(now);
 
     // 4. Pelaporan Status ke Serial Monitor
     printTelemetry(now, currentLdrState, currentRawSolar);
