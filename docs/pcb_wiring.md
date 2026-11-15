@@ -70,7 +70,7 @@ Pin pada sisi atas mikrokontroler membentang dari kiri (dekat USB) ke kanan (dek
 | 11 | **D35** | Sensor IR Proximity 2 | `J_IR2` / Soket `[B]` (JST 3-Pin) | Sisi Kiri Atas | Langsung dari OUT sensor (Input-Only) |
 | 12 | **D34** | Sensor IR Proximity 1 | `J_IR1` / Soket `[A]` (JST 3-Pin) | **★ POJOK KIRI ATAS (Terpasang)** | Langsung dari OUT sensor (Input-Only) |
 | 13 | **VN (GPIO 39)**| Input Sinyal Optocoupler PC817 | `J_SOLAR` / Soket `[E]` (JST 2-Pin)| **★ KANAN ATAS (Terpasang)** | Pin 4 PC817 + Resistor 10k Ohm ke 3.3V |
-| 14 | **VP (GPIO 36)**| Modul LDR Digital DO (Siang/Malam) | Soket `[I]` (JST 2-Pin) | Sisi Kanan Atas (dekat VN) | DO modul ke VP. VCC modul lewat saklar toggle seri |
+| 14 | **VP (GPIO 36)**| Modul LDR Digital DO (Siang/Malam) | Soket `[I]` (JST 2-Pin) | Sisi Kanan Atas (dekat VN) | DO modul ke VP. VCC 3.3V permanen, GND modul lewat saklar toggle seri |
 | 15 | **EN** | *Reset Chip (NC)* | - | Kanan Atas | Dibiarkan kosong |
 
 ---
@@ -81,7 +81,7 @@ Pin pada sisi bawah mikrokontroler membentang dari kiri (dekat USB) ke kanan (de
 
 | No | Nama Pin ESP32 | Fungsi / Modul Diorama | Soket JST Terkait | Lokasi Header JST yang Disarankan | Komponen Pasif di PCB Matrix |
 | :-: | :--- | :--- | :---: | :--- | :--- |
-| 1 | **3V3** | Output Tegangan 3.3V ESP32 | Rel Daya 3.3V | Kiri Bawah (dekat USB) | Mensuplai Sensor IR, LDR (lewat saklar toggle), & Pull-up 10k |
+| 1 | **3V3** | Output Tegangan 3.3V ESP32 | Rel Daya 3.3V | Kiri Bawah (dekat USB) | Mensuplai Sensor IR, LDR (permanen), & Pull-up 10k |
 | 2 | **GND** | Ground Utama Sisi Bawah | Rel Ground | Sepanjang rel bawah PCB | Bus rel tembaga GND |
 | 3 | **D15** | Driver Motor L298N IN1+IN3 | Soket `[J]` (JST 2-Pin) | Kiri Bawah | Output PWM ke modul L298N (eks saklar toggle sensor) |
 | 4 | **D2** | 4 LED Rumah (Rumah 1-4) | Soket `[L]` (JST 2-Pin) | Sisi Bawah Tengah | 4x Resistor 100 Ohm paralel ke Pin 1 JST |
@@ -130,8 +130,8 @@ Pin pada sisi bawah mikrokontroler membentang dari kiri (dekat USB) ke kanan (de
    * Pin 2 : **Common GND** (Katoda kedua LED digabung ke jalur ini)
    * Pin 3 : Anoda LED LPJ Bawah 3 (dari GPIO 33 via R 100 Ohm di PCB)
 8. **`[I]` LDR, Modul Sensor Cahaya LDR (JST 2-Pin) [Kanan Atas dekat VN/VP]**
-   * Pin 1 : Jalur 3.3V ESP32 (lewat saklar toggle seri)
-   * Pin 2 : DO modul LDR (ke GPIO 36 / VP). DO HIGH berarti malam, DO LOW berarti siang
+   * Pin 1 : Jalur 3.3V ESP32 permanen (sedangkan GND modul melewati saklar toggle seri)
+   * Pin 2 : DO modul LDR (ke GPIO 36 / VP). DO HIGH berarti malam/mode mainan, DO LOW berarti siang
 9. **`[E]` SOLAR, Input Panel Surya (JST 2-Pin) ★ [Kanan Atas Terpasang]**
    * Pin 1 : Anode A (+) Surya *(di PCB masuk ke Resistor 220 Ohm lalu ke Pin 1 PC817)*
    * Pin 2 : Cathode C (-) Surya *(di PCB terhubung langsung ke Pin 2 PC817)*

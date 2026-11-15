@@ -14,7 +14,7 @@ Dokumen ini memuat pemetaan pin GPIO mikrokontroler **ESP32 Dev Module** (`esp32
 | :---: | :---: | :--- | :---: | :--- |
 | **GPIO 34** | `INPUT` | Sensor IR Proximity 1 | Masukan Digital | Input-Only pin. Sinyal LOW saat mobil terdeteksi. Hanya bersiaga saat malam hari |
 | **GPIO 35** | `INPUT` | Sensor IR Proximity 2 | Masukan Digital | Input-Only pin. Sinyal LOW saat mobil terdeteksi. Hanya bersiaga saat malam hari |
-| **GPIO 36 (VP)** | `INPUT` | Modul Sensor LDR (LM393, Digital DO) | Masukan Digital | DO HIGH berarti malam (`isNight = true`), DO LOW berarti siang. VCC modul diputus saklar toggle seri, bukan lewat GPIO |
+| **GPIO 36 (VP)** | `INPUT` | Modul Sensor LDR (LM393, Digital DO) | Masukan Digital | DO HIGH berarti malam (`isNight = true`), DO LOW berarti siang. GND modul diputus saklar toggle seri (OFF = DO HIGH / mode mainan) |
 | **GPIO 39 (VN)** | `INPUT` | Sinyal Solar (Optocoupler) | Masukan Digital | Input-Only pin, membaca daya panel surya via PC817 (LOW saat ada sinar). Ada filter histeresis anti-flicker |
 
 ### B. Port Simulator BNC (8 Port Beban, I/O Dinamis)
@@ -55,7 +55,7 @@ Terminal sumber simulator: `SRC (+)` 3.3V lewat resistor 1 kOhm (Soket `[O]` Pin
 | Jalur | Fungsi |
 | :--- | :--- |
 | Saklar Power Utama (SPST) | Memutus jalur baterai 2S (7.4V) sebelum masuk modul Step-Down 5V |
-| Saklar Toggle Otomasi | Seri di jalur VCC 3.3V ke modul LDR (Soket `[I]`). OFF berarti LDR mati fisik dan sistem membaca siang |
+| Saklar Toggle Otomasi | Seri di jalur GND modul LDR (VCC 3.3V permanen). OFF berarti GND terputus -> DO tertarik HIGH (3.3V) -> Mode mainan (Rumah ON terus) |
 | Catu Daya Motor +5VS | Soket `[G]`, jalur +5V switched (saklar fisik kincir) ke modul driver L298N |
 
 ---
@@ -82,12 +82,12 @@ Terminal sumber simulator: `SRC (+)` 3.3V lewat resistor 1 kOhm (Soket `[O]` Pin
 ### A. Modul Sensor LDR Digital (LM393)
 Modul LDR yang dipakai sekarang adalah modul komparator LM393 dengan output digital DO, bukan LDR lepasan dengan pembagi tegangan.
 ```text
-3.3V ESP32 ────[ Saklar Toggle Seri ]──── VCC Modul LDR
-GND ESP32 ─────────────────────────────── GND Modul LDR
+3.3V ESP32 ─────────────────────────────── VCC Modul LDR
+GND ESP32 ────[ Saklar Toggle Seri ]───── GND Modul LDR
 GPIO 36 (VP) ESP32 ────────────────────── DO Modul LDR
 ```
 * DO `HIGH` berarti gelap / malam hari. DO `LOW` berarti terang / siang hari.
-* Saklar toggle OFF berarti modul mati fisik, DO terbaca siang, dan seluruh otomasi lampu padam.
+* Saklar toggle OFF berarti jalur GND terputus, pull-up internal 10 kOhm menarik DO ke `HIGH` (`isNight = true`), sehingga Lampu Rumah menyala terus dan LPJ Atas tetap interaktif (Mode Mainan Biasa).
 
 ### B. Simulator BNC 10-Port (Matriks Adaptif)
 Delapan port beban dan dua terminal sumber. Detail lengkap (algoritma baca ganda, analisis graf, tabel skenario) ada di `docs/matriks_logika_8port_bnc.md`.
@@ -138,13 +138,14 @@ GND ESP32 ───────────────────────�
 ```
 * GPIO 15 mengendalikan 2 kanal dinamo DC 1 arah sekaligus (ON/OFF dan PWM). Default motor aktif, bisa diubah lewat MQTT / Serial.
 
-### G. Rangkaian Saklar Toggle Otomasi (Seri VCC LDR)
+### G. Rangkaian Saklar Toggle Otomasi (Seri GND LDR)
 ```text
-3.3V ESP32 ────────[ Saklar Toggle SPST ]──────── VCC Modul LDR (Soket [I] Pin 1)
+3.3V ESP32 ────────────────────────────────────── VCC Modul LDR (Permanen)
+GND ESP32 ─────────[ Saklar Toggle SPST ]──────── GND Modul LDR
 DO Modul LDR ──────────────────────────────────── GPIO 36 ESP32 (Soket [I] Pin 2)
 ```
-* Saklar ON: modul LDR mendapat daya, sistem membaca siang/malam dari DO.
-* Saklar OFF: modul mati fisik, sistem membaca siang, seluruh otomasi lampu padam.
+* Saklar ON: modul LDR mendapat GND, sistem membaca siang/malam dari DO secara normal.
+* Saklar OFF: jalur GND terputus, pull-up internal 10 kOhm menarik DO ke `HIGH` (`isNight = true`), sehingga Lampu Rumah menyala terus dan LPJ Atas tetap interaktif (Mode Mainan Biasa). Simulator BNC tetap aktif di kedua posisi saklar.
 
 ### H. Rangkaian Sensor IR Proximity (2 Unit)
 * **VCC:** Ke pin **3.3V** atau **5V** ESP32

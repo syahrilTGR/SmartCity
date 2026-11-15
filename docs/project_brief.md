@@ -12,9 +12,9 @@ Miniatur tata kota pintar (*Smart City*) ini dirancang untuk mensimulasikan sist
 1. **4 Unit Miniatur Rumah**: 4 LED pencahayaan pemukiman digabung ke satu pin, GPIO 2 (Soket [L]). Menyala otomatis saat malam hari, masing-masing LED memakai resistor 100 Ohm, arus total sekitar 12 mA.
 2. **6 Unit Lampu Penerangan Jalan Umum (LPJ)** yang dibagi menjadi dua zona:
    - **Jalur Atas (2 Lampu Jalan)**: Menyala otomatis saat mendeteksi kendaraan melintas menggunakan 2 sensor IR Proximity mandiri. Hanya bersiaga saat malam hari (LDR), siang hari dipadamkan untuk efisiensi energi.
-   - **Jalur Bawah (4 Lampu Jalan)**: Simulator rangkaian listrik adaptif 10-port. Tiap lampu dikendalikan mandiri (GPIO 26, 12, 33, 32) dengan kecerahan PWM yang mengikuti hasil analisis rangkaian yang dirangkai siswa lewat kabel BNC. Aktif hanya saat malam hari.
+   - **Jalur Bawah (4 Lampu Jalan)**: Simulator rangkaian listrik adaptif 10-port. Tiap lampu dikendalikan mandiri (GPIO 26, 12, 33, 32) dengan kecerahan PWM yang mengikuti hasil analisis rangkaian yang dirangkai siswa lewat kabel BNC. Selalu aktif (siang maupun malam) agar mudah diuji kapan saja.
 3. **1 Unit Turbin Angin (Pojok Kiri Atas)**:
-   - Menggunakan motor DC Tamiya (tipe 130) yang kini digerakkan lewat driver **L298N**, dikendalikan ESP32 dari GPIO 15 (Soket [J], IN1+IN3). Default menyala, bisa dimatikan lewat MQTT atau Serial.
+   - Menggunakan motor DC Tamiya (tipe 130) yang kini digerakkan lewat driver **L298N**, dikendalikan ESP32 dari GPIO 15 (Soket [J], IN1+IN3). Default menyala (starter 100% 300 ms lalu Level 4 / 80% PWM), bisa dimatikan lewat MQTT atau Serial.
 4. **1 Unit Lampu Lalu Lintas Tenaga Surya (Traffic Light)**:
    - Menggunakan modul LED VKS 5V (Merah, Kuning, Hijau) yang dikendalikan oleh ESP32.
    - Dilengkapi panel surya mini 5V yang terhubung via **Optocoupler PC817** sebagai pendeteksi ketersediaan energi matahari / siklus siang.
@@ -30,12 +30,12 @@ Miniatur tata kota pintar (*Smart City*) ini dirancang untuk mensimulasikan sist
 | **LED LPJ Jalur Atas** | 2 | 3.0V (Resistor 100 Ohm) | Lampu jalan atas (dipicu IR Proximity 1 & 2, malam hari saja) |
 | **LED LPJ Jalur Bawah** | 4 | 3.0V (Resistor 100 Ohm) | Lampu jalan bawah (simulator adaptif, kecerahan PWM) |
 | **Sensor IR Proximity** | 2 | 3.3V – 5V | Deteksi rintangan/mobil jalur atas 1 & 2 (Active LOW, siaga malam hari) |
-| **Sensor Cahaya (LDR)** | 1 | 3.3V | Modul LM393 digital DO ke GPIO 36. DO HIGH berarti malam, DO LOW berarti siang. VCC modul diputus saklar toggle seri |
+| **Sensor Cahaya (LDR)** | 1 | 3.3V | Modul LM393 digital DO ke GPIO 36. DO HIGH berarti malam, DO LOW berarti siang. GND modul diputus saklar toggle seri |
 | **Port BNC Simulator** | 10 | Logika 3.3V | 2 terminal sumber (SRC+ 3.3V via R 1k, SRC- GND) + 8 terminal beban A1, A2, B1, B2, C1, C2, D1, D2 ke GPIO 4, 25, 16, 17, 21, 22, 18, 19 |
 | **Resistor Seri BNC** | 8 | - | Resistor 150 Ohm di tiap jalur port A1 s/d D2, tepat di belakang soket BNC |
 | **Driver Motor L298N** | 1 | Logika 5V | Driver 2 kanal dinamo DC 1 arah, dikendalikan GPIO 15 (IN1+IN3, Soket [J]) |
 | **Dinamo Tamiya (Motor 130)** | 1 | 5V DC | Turbin angin pojok kiri atas, digerakkan via L298N |
-| **Saklar Toggle Otomasi** | 1 | 3.3V | Saklar seri di jalur VCC modul LDR (Soket [I]). OFF berarti LDR mati fisik, sistem membaca siang dan semua otomasi lampu padam |
+| **Saklar Toggle Otomasi** | 1 | 3.3V | Saklar seri di jalur GND modul LDR. OFF berarti GND LDR putus -> DO tertarik HIGH (3.3V) -> Mode mainan (Rumah ON terus) |
 | **Saklar Power Utama** | 1 | 7.4V / Baterai | Master switch pemutus daya baterai 2S sebelum Step-Down |
 | **Modul Traffic Light VKS** | 1 | 5V (R, Y, G, GND) | Lampu lalu lintas 3 warna dikontrol ESP32 |
 | **Optocoupler PC817** | 1 | 3.3V / 5V | Isolasi pembaca daya panel surya ke GPIO 39 |
@@ -54,7 +54,7 @@ Miniatur tata kota pintar (*Smart City*) ini dirancang untuk mensimulasikan sist
 - **Logika:** Lampu hanya bersiaga saat malam hari (`isNight == true`). Saat mobil melintas di depan sensor terkait (sinyal LOW terdeteksi), lampu menyala dan ditahan 1 detik setelah mobil lewat (off-delay 1000 ms). Siang hari kedua lampu dipadamkan.
 
 ### B. LPJ Jalur Bawah (Simulator Rangkaian Adaptif 10-Port)
-- **Master Enable:** Simulator hanya aktif saat malam hari (`isLowerStreetArmed == isNight`). Siang hari seluruh LPJ jalur bawah padam.
+- **Master Enable:** Simulator selalu aktif (`isLowerStreetArmed = true`) baik siang maupun malam hari agar mudah diuji dan dimainkan kapan saja.
 - **Cara kerja:** ESP32 memindai 8 port beban tiap 40 ms (baca ganda pull-up/pull-down, lalu analisis graf Union-Find + DFS). Tiap lampu menyala sesuai rangkaian yang dirangkai siswa:
   - **1 lampu mandiri / paralel penuh:** tegangan penuh 3.3V, PWM 100% (duty 255).
   - **2 lampu seri:** tegangan terbagi, PWM 50% (duty 128).
@@ -70,7 +70,7 @@ Miniatur tata kota pintar (*Smart City*) ini dirancang untuk mensimulasikan sist
 
 ### D. Turbin Angin via Driver L298N
 - Dua kanal dinamo DC 1 arah dikendalikan bersama dari **GPIO 15** (Soket [J], IN1+IN3 L298N, bisa ON/OFF dan PWM).
-- Default motor aktif berputar (`isMotorActive = true`). Status bisa diubah lewat MQTT atau Serial Monitor. Motor tidak digate kondisi siang/malam, jadi turbin berputar terus selama diaktifkan.
+- Default motor aktif berputar (`isMotorActive = true`) dengan logika starter cerdas: dorongan awal Speed 5 (100% PWM / 255) selama 300 ms, lalu otomatis turun ke Level 4 (80% PWM / 204) untuk operasi stabil. Status bisa diubah lewat MQTT atau Serial Monitor (tombol `m`). Motor tidak digate kondisi siang/malam, jadi turbin berputar terus selama diaktifkan.
 - Catu daya motor (+5V switched) masuk lewat Soket [G].
 
 ### E. Lampu Lalu Lintas Cerdas Tenaga Surya
@@ -78,8 +78,9 @@ Miniatur tata kota pintar (*Smart City*) ini dirancang untuk mensimulasikan sist
 - **Mode Malam (Daya Surya Padam):** ESP32 beralih ke mode siaga lampu kuning berkedip (*flashing yellow*) seperti kota nyata.
 
 ### F. Saklar Toggle Otomasi (Master Sensor)
-- Saklar toggle dipasang seri di jalur VCC 3.3V ke modul LDR (Soket [I]), bukan lagi ke pin GPIO.
-- Saat saklar OFF, modul LDR mati fisik sehingga sistem membaca siang (`isNight = false`) dan seluruh otomasi lampu (rumah, LPJ atas, LPJ bawah) padam seketika. Traffic light dan motor tidak terpengaruh saklar ini.
+- Saklar toggle dipasang seri di jalur **GND** modul LDR (VCC 3.3V terhubung permanen ke modul LDR), bukan lagi ke pin GPIO.
+- **Saat saklar ON:** Modul LDR aktif normal membaca siang/malam (Terang -> Rumah & LPJ Atas padam, Gelap -> Rumah ON & LPJ Atas siaga IR).
+- **Saat saklar OFF (Mode Mainan Biasa):** Jalur GND modul LDR terputus sehingga pull-up internal 10 kOhm menarik pin DO ke 3.3V (`HIGH` / `isNight = true`). Akibatnya Lampu Rumah menyala terus dan LPJ Atas tetap interaktif merespons sensor IR tanpa terpengaruh cahaya ruangan. Traffic light, simulator BNC, dan motor tidak terpengaruh saklar ini.
 
 ---
 

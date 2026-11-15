@@ -61,7 +61,7 @@ Untuk menjamin ESP32 tidak pernah gagal *boot* saat siswa menancapkan kabel sebe
 * **LPJ Jalur Atas (2 LED):** **`GPIO 14`** (LPJ Atas 1) dan **`GPIO 27`** (LPJ Atas 2) pada Soket `[C]`. *Hanya aktif bersiaga jika malam hari (`isNight == true`).*
 * **Traffic Light VKS:** **`GPIO 23`** (Merah), **`GPIO 5`** (Kuning), **`GPIO 13`** (Hijau) pada Soket `[P]`.
 * **Sensor Input-Only:** **`GPIO 34`** (IR 1 - Soket `[A]`), **`GPIO 35`** (IR 2 - Soket `[B]`), **`GPIO 36`** (LDR DO - Soket `[I]`), **`GPIO 39`** (Solar Optocoupler - Soket `[E]`).
-* **Saklar Toggle Otomasi:** Dipasang seri fisik pada jalur kabel VCC (3.3V) ke Modul LDR (`[I]`). Saat OFF, LDR mati fisik sehingga terbaca Siang (`isNight = false`) dan seluruh lampu otomasi seketika padam aman.
+* **Saklar Toggle Otomasi:** Dipasang seri fisik pada jalur kabel **GND** ke Modul LDR (VCC 3.3V permanen). Saat OFF, GND terputus sehingga pull-up internal menarik DO ke `HIGH` (`isNight = true`, Mode Mainan: Lampu Rumah nyala terus & LPJ Atas aktif). Simulator BNC sendiri selalu aktif (siang maupun malam).
 
 ---
 
