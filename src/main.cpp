@@ -245,8 +245,10 @@ uint8_t motorCurrentDuty = 0;
 unsigned long ir1ActiveTimer = 0;
 unsigned long ir2ActiveTimer = 0;
 
-// Objek Global WiFiManager (untuk penanganan non-blocking portal di loop)
+// Objek Global WiFiManager (untuk penanganan non-blocking penuh di background)
 WiFiManager wm;
+bool wifiPortalStarted = false;
+constexpr unsigned long WIFI_CONNECT_GRACE_MS = 10000; // Batas tunggu konek background sebelum AP nyala (10 detik)
 
 // =============================================================================
 // STATE TRAFFIC LIGHT & TELEMETRI
@@ -401,22 +403,19 @@ void setup() {
 
     Serial.println("Inisialisasi I/O selesai. Seluruh filter debounce & histeresis aktif!");
 
-    // 4. Inisialisasi WiFiManager Non-Blocking (Connect Timeout 15 Detik & Portal Standby Tanpa Batas)
-    wm.setConfigPortalBlocking(false); // NON-BLOCKING: Loop utama langsung jalan tanpa menunggu!
+    // 4. Inisialisasi WiFiManager Non-Blocking Penuh (0 Detik Delay saat Boot)
+    wm.setConfigPortalBlocking(false); // NON-BLOCKING: Portal AP tidak menahan loop utama
     wm.setConfigPortalTimeout(0);      // Portal AP tetap terbuka (tanpa batas waktu) sampai ada yang menyambungkan Wi-Fi
-    wm.setConnectTimeout(15);          // Coba konek ke router tersimpan selama 15 detik
 
-    Serial.println("\n[WIFI] Memulai WiFiManager (Mode Non-Blocking)...");
-    Serial.println("[WIFI] Mencoba konek ke router tersimpan (Maks 15 detik)...");
-
-    if (wm.autoConnect("SmartCity-AP")) {
-        Serial.println("[WIFI] Berhasil terhubung ke Wi-Fi!");
-        Serial.print("[WIFI] Alamat IP ESP32: ");
-        Serial.println(WiFi.localIP());
-        setupOTA();
+    Serial.println("\n[WIFI] Memulai Wi-Fi (Mode Non-Blocking Penuh, 0 detik delay)...");
+    if (wm.getWiFiIsSaved()) {
+        WiFi.mode(WIFI_STA);
+        WiFi.begin(); // Koneksi asynchronous menggunakan SSID/password tersimpan di flash
+        Serial.println("[WIFI] Mencoba konek ke router tersimpan di latar belakang. Loop diorama LANGSUNG BERJALAN!");
     } else {
-        Serial.println("[WIFI] Belum terhubung dalam 15 detik. Portal 'SmartCity-AP' aktif di latar belakang (tanpa batas waktu).");
-        Serial.println("[WIFI] Sambungkan HP ke 'SmartCity-AP' kapan saja untuk set Wi-Fi. Loop diorama LANGSUNG BERJALAN!");
+        wm.startConfigPortal("SmartCity-AP");
+        wifiPortalStarted = true;
+        Serial.println("[WIFI] Belum ada Wi-Fi tersimpan. Portal 'SmartCity-AP' langsung aktif. Loop diorama LANGSUNG BERJALAN!");
     }
 
     // 5. Inisialisasi Klien MQTT (Buffer 1024 Bytes untuk JSON Telemetri)
@@ -919,13 +918,20 @@ void handleMQTT(unsigned long now) {
 void loop() {
     unsigned long now = millis();
 
-    // 0. Proses WiFiManager di latar belakang (Non-Blocking)
+    // 0. Proses Wi-Fi & WiFiManager di latar belakang (Non-Blocking Penuh)
+    if (!wifiPortalStarted && WiFi.status() != WL_CONNECTED && now >= WIFI_CONNECT_GRACE_MS) {
+        wifiPortalStarted = true;
+        Serial.println("\n[WIFI] Router/hotspot tersimpan tidak merespons. Menyalakan Portal 'SmartCity-AP' di latar belakang...");
+        wm.startConfigPortal("SmartCity-AP");
+    }
     wm.process();
 
-    // Inisialisasi service OTA otomatis jika Wi-Fi terhubung belakangan via portal
+    // Inisialisasi service OTA otomatis saat Wi-Fi terhubung
     static bool otaReady = false;
     if (WiFi.status() == WL_CONNECTED) {
         if (!otaReady) {
+            Serial.print("\n[WIFI] Terhubung! Alamat IP ESP32: ");
+            Serial.println(WiFi.localIP());
             setupOTA();
             otaReady = true;
         }
