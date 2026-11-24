@@ -1,6 +1,6 @@
 /**
  * =============================================================================
- * FIRMWARE UTAMA: SMART CITY MINIATUR DIORAMA TERINTEGRASI
+ * FIRMWARE UTAMA: ELECTROCITY MINIATUR DIORAMA TERINTEGRASI
  * Mikrokontroler : ESP32 Dev Module (DOIT DevKit v1 30-Pin)
  * Framework      : Arduino (PlatformIO)
  * Fitur Tambahan : Software Debounce Digital & Histeresis Analog (Anti-Flicker)
@@ -21,7 +21,7 @@
  *    - Selalu aktif (siang maupun malam) sesuai koneksi kabel BNC siswa.
  *
  * 4. Motor Driver L298N (2x Dinamo DC 1-Arah):
- *    - GPIO 15 (Soket J): Output kendali motor IN1 + IN3 L298N (Starter 100% 300 ms -> Level 4 / 80%).
+ *    - GPIO 15 (Soket J): Output kendali motor IN1 + IN3 L298N (Starter 100% 300 ms -> 65% PWM).
  *
  * 5. Master Switch Otomasi Sensor:
  *    - Saklar toggle fisik dipasang seri memutus jalur GND ke Modul LDR (Soket I).
@@ -118,8 +118,8 @@ constexpr uint8_t PIN_TL_GREEN    = 13; // Traffic Light Hijau
 // Ambang Batas Histeresis Sensor LDR: Tidak dibutuhkan (Modul LM393 dikalibrasi via trimpot biru)
 
 // Ambang Batas Histeresis Sensor Panel Surya PC817
-constexpr int SOLAR_ENTER_DAY       = 2400; // Masuk daya surya aktif jika ADC < 2400
-constexpr int SOLAR_EXIT_DAY        = 2600; // Kembali malam/padam jika ADC > 2600
+constexpr int SOLAR_ENTER_DAY       = 3200; // Masuk daya surya aktif jika ADC < 3200
+constexpr int SOLAR_EXIT_DAY        = 3400; // Kembali malam/padam jika ADC > 3400
 
 // Parameter Debounce Digital (Milidetik)
 constexpr unsigned long DEBOUNCE_DELAY_MS = 35;   // Filter getaran mekanik saklar/BNC
@@ -141,8 +141,8 @@ constexpr unsigned long TELEMETRY_INTERVAL = 600;
 // =============================================================================
 constexpr const char* MQTT_BROKER       = "broker.emqx.io";
 constexpr int         MQTT_PORT         = 1883;
-constexpr const char* MQTT_TOPIC_STATUS = "smartcity/esp32/status";
-constexpr const char* MQTT_TOPIC_TELEM  = "smartcity/esp32/telemetry";
+constexpr const char* MQTT_TOPIC_STATUS = "electrocity/esp32/status";
+constexpr const char* MQTT_TOPIC_TELEM  = "electrocity/esp32/telemetry";
 
 constexpr unsigned long MQTT_RECONNECT_INTERVAL = 4000; // Interval coba koneksi ulang (ms)
 constexpr unsigned long MQTT_PUBLISH_INTERVAL   = 1000; // Interval kirim data telemetri reguler (ms)
@@ -228,7 +228,7 @@ uint8_t lpjBwhChain[4]   = {0, 0, 0, 0}; // Panjang rantai seri (1=Paralel, 2=2 
 // Status & Kendali Motor Driver L298N (GPIO 15 / Soket J)
 bool isMotorActive = true; // Motor aktif berputar (dapat dikendalikan via MQTT / Serial)
 constexpr uint8_t MOTOR_SPEED_KICKSTART             = 255; // Level 5 (100% PWM Starter Awal)
-constexpr uint8_t MOTOR_SPEED_RUN                   = 204; // Level 4 (80% PWM Kecepatan Operasional)
+constexpr uint8_t MOTOR_SPEED_RUN                   = 166; // 65% PWM Kecepatan Operasional (255 * 0.65)
 constexpr unsigned long MOTOR_KICKSTART_DURATION_MS = 300; // Durasi semburan starter 300 ms
 
 enum MotorState {
@@ -304,7 +304,7 @@ int readSmoothADC(uint8_t pin, int samples = 64) {
 // =============================================================================
 
 void setupOTA() {
-    ArduinoOTA.setHostname("smartcity-esp32");
+    ArduinoOTA.setHostname("electrocity-esp32");
 
     ArduinoOTA.onStart([]() {
         String type = (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
@@ -357,7 +357,7 @@ void setup() {
 
     Serial.println();
     Serial.println("================================================================");
-    Serial.println("     FIRMWARE UTAMA SMART CITY ESP32 (DEBOUNCED & HYSTERESIS)   ");
+    Serial.println("     FIRMWARE UTAMA ELECTROCITY ESP32 (DEBOUNCED & HYSTERESIS)   ");
     Serial.println("================================================================");
 
     // 1. Inisialisasi Input Digital Ter-Debounce & 8 Port Banana Simulator
@@ -413,9 +413,9 @@ void setup() {
         WiFi.begin(); // Koneksi asynchronous menggunakan SSID/password tersimpan di flash
         Serial.println("[WIFI] Mencoba konek ke router tersimpan di latar belakang. Loop diorama LANGSUNG BERJALAN!");
     } else {
-        wm.startConfigPortal("SmartCity-AP");
+        wm.startConfigPortal("ElectroCity-AP");
         wifiPortalStarted = true;
-        Serial.println("[WIFI] Belum ada Wi-Fi tersimpan. Portal 'SmartCity-AP' langsung aktif. Loop diorama LANGSUNG BERJALAN!");
+        Serial.println("[WIFI] Belum ada Wi-Fi tersimpan. Portal 'ElectroCity-AP' langsung aktif. Loop diorama LANGSUNG BERJALAN!");
     }
 
     // 5. Inisialisasi Klien MQTT (Buffer 1024 Bytes untuk JSON Telemetri)
@@ -674,7 +674,7 @@ void updateLowerStreetlights(unsigned long now) {
  * 6. Kendali Motor Driver L298N (2x Dinamo DC 1-Arah, GPIO 15 / Soket J):
  *    Logika Starter Cerdas: Saat pertama kali menyala / diaktifkan, motor diberi dorongan
  *    kecepatan Speed 5 (PWM 255) selama 300 ms untuk mengatasi inersia/torsi awal,
- *    kemudian otomatis diturunkan ke Level 4 (PWM 204, 80%) untuk operasi stabil & hemat daya.
+ *    kemudian otomatis diturunkan ke 65% (PWM 166) untuk operasi stabil & hemat daya.
  */
 void updateMotorDriver(unsigned long now) {
     if (!isMotorActive) {
@@ -693,7 +693,7 @@ void updateMotorDriver(unsigned long now) {
         motorCurrentDuty = MOTOR_SPEED_KICKSTART;
         analogWrite(PIN_MOTOR_DRV, motorCurrentDuty);
     } else if (motorState == MOTOR_STATE_KICKSTART) {
-        // Tahan selama durasi kickstart, lalu turunkan ke Level 4 (PWM 204)
+        // Tahan selama durasi kickstart, lalu turunkan ke 65% (PWM 166)
         if (now - motorKickStartTime >= MOTOR_KICKSTART_DURATION_MS) {
             motorState = MOTOR_STATE_RUNNING;
             motorCurrentDuty = MOTOR_SPEED_RUN;
@@ -758,7 +758,7 @@ void printTelemetry(unsigned long now, int ldrState, int rawSolar) {
             else if (tlState == TL_GREEN)  tlStr = "HIJAU ";
         }
 
-        const char* motorStr = (motorCurrentDuty == 0) ? "OFF   " : ((motorState == MOTOR_STATE_KICKSTART) ? "STR(5)" : "LVL(4)");
+        const char* motorStr = (motorCurrentDuty == 0) ? "OFF   " : ((motorState == MOTOR_STATE_KICKSTART) ? "STR(5)" : "65%   ");
 
         Serial.printf("[CUACA] LDR_DO:%d (%-5s) | SOLAR:%4d (%-5s) || LPJ ATAS: [%d, %d] | LPJ BWH (PWM): [L1:%3d, L2:%3d, L3:%3d, L4:%3d]%s | RUMAH: %-3s | MOTOR: %-6s | TL: %-6s | IP: %s\n",
                       ldrState,
@@ -862,7 +862,7 @@ void handleMQTT(unsigned long now) {
             Serial.printf("[MQTT] Menghubungkan ke broker: %s:%d...\n", MQTT_BROKER, MQTT_PORT);
 
             // Client ID unik ESP32 berdasarkan MAC address
-            String clientId = "ESP32_SmartCity_" + WiFi.macAddress();
+            String clientId = "ESP32_ElectroCity_" + WiFi.macAddress();
             clientId.replace(":", "");
 
             // LWT (Last Will & Testament): Jika ESP32 mati/terputus, broker publikasikan "offline" (retained)
@@ -921,8 +921,8 @@ void loop() {
     // 0. Proses Wi-Fi & WiFiManager di latar belakang (Non-Blocking Penuh)
     if (!wifiPortalStarted && WiFi.status() != WL_CONNECTED && now >= WIFI_CONNECT_GRACE_MS) {
         wifiPortalStarted = true;
-        Serial.println("\n[WIFI] Router/hotspot tersimpan tidak merespons. Menyalakan Portal 'SmartCity-AP' di latar belakang...");
-        wm.startConfigPortal("SmartCity-AP");
+        Serial.println("\n[WIFI] Router/hotspot tersimpan tidak merespons. Menyalakan Portal 'ElectroCity-AP' di latar belakang...");
+        wm.startConfigPortal("ElectroCity-AP");
     }
     wm.process();
 
@@ -952,7 +952,7 @@ void loop() {
             ESP.restart();
         } else if (c == 'm' || c == 'M') {
             isMotorActive = !isMotorActive;
-            Serial.printf("\n[MOTOR] Kendali motor di-toggle: %s\n", isMotorActive ? "AKTIF (Starter Speed 5 -> Level 4)" : "MATI");
+            Serial.printf("\n[MOTOR] Kendali motor di-toggle: %s\n", isMotorActive ? "AKTIF (Starter 100% -> 65%)" : "MATI");
         }
     }
 
